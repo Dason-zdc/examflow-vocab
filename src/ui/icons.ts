@@ -1,0 +1,81 @@
+/**
+ * 图标唯一出口（UIUX §6）：
+ * 全项目图标只从这里引入 lucide-react，组件层不得直接 import lucide。
+ * strokeWidth 统一 1.75；尺寸只有 16 / 20 / 24 三档（ICON_SIZE 常量）。
+ */
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FileJson,
+  Hourglass,
+  Info,
+  Languages,
+  LayoutDashboard,
+  Lightbulb,
+  ListFilter,
+  Loader2,
+  Network,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Scissors,
+  Search,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  SpellCheck2,
+  Sprout,
+  Star,
+  Trash2,
+  Undo2,
+  Upload,
+  Volume2,
+  X,
+} from 'lucide-react';
+
+export const ICON_SIZE = { inline: 16, button: 20, standalone: 24 } as const;
+
+/** 统一描边宽度（UIUX §6：全局 1.75，圆角端点） */
+export const ICON_STROKE = 1.75;
+
+export {
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FileJson,
+  Hourglass,
+  Info,
+  Languages,
+  LayoutDashboard,
+  Lightbulb,
+  ListFilter,
+  Loader2,
+  Network,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Scissors,
+  Search,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  SpellCheck2,
+  Sprout,
+  Star,
+  Trash2,
+  Undo2,
+  Upload,
+  Volume2,
+  X,
+};

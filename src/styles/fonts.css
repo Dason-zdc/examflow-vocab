@@ -1,0 +1,26 @@
+/* ==========================================================================
+ * Self-hosted fonts（PRD §2.4 / §8.1：禁止运行时 CDN 字体）
+ * --------------------------------------------------------------------------
+ * 仅 latin 子集的可变字体（woff2，各约 30-50KB）。CJK 字形按设计令牌的
+ * font stack 回退到系统字体（PingFang SC / Microsoft YaHei / Noto），
+ * 这与 tailwind.config.ts 中 sans/word 栈的顺序一致。
+ *
+ * 更新方式：Google Fonts css2 API（UA 需为现代浏览器以拿 woff2），
+ * 取 /* latin *​/ 块的 URL 下载到 public/fonts/，再改下面的 src。
+ * ========================================================================== */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+}

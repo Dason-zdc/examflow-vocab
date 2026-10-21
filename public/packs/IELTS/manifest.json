@@ -1,0 +1,95 @@
+{
+  "exam": "IELTS",
+  "version": "1.1.0",
+  "minAppVersion": "1.0.0",
+  "generatedAt": "2026-10-21T01:07:54+08:00",
+  "wordCount": 2000,
+  "chunkSize": 300,
+  "chunks": [
+    {
+      "n": 0,
+      "file": "chunk-0.json",
+      "wordCount": 300,
+      "sha256": "eca0aaba1571eb5ac4170a9cc3febd16ec376c29d501b00d8381dc81040139b0",
+      "bytes": 405126
+    },
+    {
+      "n": 1,
+      "file": "chunk-1.json",
+      "wordCount": 300,
+      "sha256": "d076d08a570a02521dbbe8ade06d41aea30c903fc1f1a47cb9504e0694aaefaf",
+      "bytes": 620383
+    },
+    {
+      "n": 2,
+      "file": "chunk-2.json",
+      "wordCount": 300,
+      "sha256": "fcd7041d2560303bbd530d2b9ff79c20998f2a910e8f28089fd8809a89ecebff",
+      "bytes": 630646
+    },
+    {
+      "n": 3,
+      "file": "chunk-3.json",
+      "wordCount": 300,
+      "sha256": "8d5684d84d4f4d09db2cd82d36ce8aef43369c96fbb974980abf59e0039b8dee",
+      "bytes": 643310
+    },
+    {
+      "n": 4,
+      "file": "chunk-4.json",
+      "wordCount": 300,
+      "sha256": "efd0f6c81d98fb1aed2e072b9334e962a2b0a6dc3e2bf446caf7dd6acf6f7277",
+      "bytes": 651078
+    },
+    {
+      "n": 5,
+      "file": "chunk-5.json",
+      "wordCount": 300,
+      "sha256": "6578d6caa7049817b22583204b4e11e40fbb0b2667e718cc10b46ad10482cb80",
+      "bytes": 572251
+    },
+    {
+      "n": 6,
+      "file": "chunk-6.json",
+      "wordCount": 200,
+      "sha256": "4c35db33f714e7ea7570a65d7a01055e4db534c862be3c089bbfb320d59dd304",
+      "bytes": 389131
+    }
+  ],
+  "lemmaMap": {
+    "file": "lemma-map.json",
+    "sha256": "fcaefd79693db6f36a7e3934377bdd3d201c57fcf9c981dd4a8c80d5aa1b2172",
+    "bytes": 136346,
+    "entries": 6631
+  },
+  "deprecatedWordIds": [],
+  "frequencyMethod": "义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources。tier 按全库 senseWeight 分位切分：核心约30% / 进阶约40% / 拓展约30%。",
+  "provenanceNote": "所有例句均为仿真例句（ADAPTED）。不含真题原句，不标注真题年份、题号或出处。",
+  "sources": [
+    {
+      "name": "ECDICT",
+      "url": "https://github.com/skywind3000/ECDICT",
+      "license": "MIT",
+      "used": "词条、音标、中英文释义、词性、词频(frq/bnc)、考试标签(tag)、词形变化(exchange)"
+    },
+    {
+      "name": "ECDICT lemma.en.txt",
+      "url": "https://github.com/skywind3000/ECDICT/blob/master/lemma.en.txt",
+      "license": "free for research/educational use (per file header)",
+      "used": "变形 → 原形映射补充"
+    },
+    {
+      "name": "ECDICT wordroot.txt",
+      "url": "https://github.com/skywind3000/ECDICT/blob/master/wordroot.txt",
+      "license": "MIT (same repository)",
+      "used": "词根说明（仅在明确收录该词时生成）"
+    },
+    {
+      "name": "Academic seed word list (built-in)",
+      "url": "scripts/etl_build_pack.py :: ACADEMIC_SEED_WORDS",
+      "license": "n/a — 仅排序权重，不作为内容输出",
+      "used": "学术向选词加权（近似 Coxhead AWL 取向，可用 --awl-file 覆盖）"
+    }
+  ],
+  "license": "ExamFlow Vocab · IELTS 数据包 v1.1.0\n== 词典数据 ==\n来源：ECDICT (https://github.com/skywind3000/ECDICT)，MIT License，版权归 skywind3000 及贡献者所有。ECDICT 自身汇集 MIT / WordNet (WordNet License) / cdict 等允许商用的开放来源。本数据包仅使用其词条、音标、中英文释义、词频与词形变化字段。\n词形还原补充：ECDICT lemma.en.txt（BNC 语料派生，作者声明可用于研究与教育用途）。\n词根说明：ECDICT wordroot.txt。\n== 例句 ==\n本数据包内所有例句均为仿真例句（provenance.type = ADAPTED），由脚本模板生成或人工撰写，用于演示义项用法。不含、也不声称来自剑桥雅思真题、剑桥大学出版社、British Council、IDP 或任何其他受版权保护的考试材料。例句中的年份、机构、数据均为虚构，仅用于构造语境。\n== 义项权重（合规声明） ==\n本项目没有雅思真题语料，因此不允许、也不存在「在雅思中出现 N 次」这类考频表述。\nexamStats.IELTS.senseWeight 是由公开信号合成的估计值（0~100），kind 恒为 'ESTIMATED'，\n每个义项的 sources 字段列出其权重来源信号。计算公式：\n    senseWeight = 100 x (0.25*W_awl + 0.45*W_gen + 0.10*W_ox + 0.20*W_wn)\n其中 W_awl 为学术词表（近似 Coxhead AWL 取向）命中权重，W_gen 由 ECDICT 当代语料库\n词频序号 frq 映射到 0.30~1.00，W_ox 为牛津 5000 考试向权重，W_wn 为 WordNet 义项\n顺序权重 [0.46, 0.26, 0.16, 0.12] 归一。权重仅用于学习优先级排序，不是真题统计值。\ntier（核心/进阶/拓展）按全库 senseWeight 分位切分，约 30% / 40% / 30%。\n== 不使用的数据 ==\n不使用柯林斯释义（需商业授权）、有道 dictvoice 等非公开接口、kajweb/dict 等来源不明数据集。\n== 商标 ==\nIELTS 是剑桥大学出版社、British Council 与 IDP 的注册商标；本数据包为独立编制的学习材料，未获其授权或背书。"
+}

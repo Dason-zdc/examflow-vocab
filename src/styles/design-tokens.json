@@ -1,0 +1,387 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "ExamFlow Vocab design tokens. Register=Product, Platform=web. Light theme only for MVP; structure is dark-ready via data-theme. Naming is 1:1 with design-tokens.css: JSON path color.accent.value <-> CSS var(--accent).",
+  "meta": {
+    "product": "ExamFlow Vocab",
+    "version": { "value": "1.0.0", "type": "string" },
+    "register": { "value": "product", "type": "string", "$description": "Product register: benchmark is earned familiarity (Linear/Notion/Stripe), not distinctiveness." },
+    "platform": { "value": "web", "type": "string" },
+    "designVariance": { "value": 4, "type": "number", "$description": "Predictable 12-col grid; one deliberate asymmetry (8/4 study split, left-aligned card content). Collapses to single column <768px." },
+    "motionIntensity": { "value": 3, "type": "number", "$description": "Functional motion only. No entrance choreography, no bounce." },
+    "visualDensity": { "value": 6, "type": "number", "$description": "Dense but grouped by border-t/divide-y and negative space rather than nested card boxes." },
+    "theme": { "value": "light", "type": "string", "$description": "MVP ships light only. See docs/03-UIUX.md section 2.6 for rationale and the dark-mode migration path." },
+    "iconLibrary": { "value": "lucide-react", "type": "string", "$description": "LOCKED. No other icon library may be introduced. Sizes 16/20/24px only." }
+  },
+
+  "primitive": {
+    "$description": "Raw ramps. Never referenced directly by components. A1-identity + A1-structure.",
+    "gray": {
+      "0":   { "value": "#FFFFFF", "type": "color" },
+      "25":  { "value": "#FAFBFC", "type": "color" },
+      "50":  { "value": "#F5F7FA", "type": "color" },
+      "100": { "value": "#EEF1F5", "type": "color" },
+      "150": { "value": "#ECEFF3", "type": "color" },
+      "200": { "value": "#E1E6EB", "type": "color" },
+      "250": { "value": "#DDE3EA", "type": "color" },
+      "300": { "value": "#CBD2DB", "type": "color" },
+      "400": { "value": "#A9B3BF", "type": "color" },
+      "450": { "value": "#97A1B0", "type": "color" },
+      "500": { "value": "#7C879A", "type": "color" },
+      "550": { "value": "#697284", "type": "color" },
+      "575": { "value": "#7E8B9C", "type": "color" },
+      "600": { "value": "#545E6D", "type": "color" },
+      "700": { "value": "#3B4450", "type": "color" },
+      "800": { "value": "#242C37", "type": "color" },
+      "900": { "value": "#141A22", "type": "color" },
+      "950": { "value": "#0B1016", "type": "color" }
+    },
+    "teal": {
+      "50":  { "value": "#E6F4F7", "type": "color" },
+      "100": { "value": "#C2E7EE", "type": "color" },
+      "200": { "value": "#8FD3E0", "type": "color" },
+      "300": { "value": "#55B8CC", "type": "color" },
+      "400": { "value": "#2A9AB2", "type": "color" },
+      "500": { "value": "#12879E", "type": "color" },
+      "600": { "value": "#0E7490", "type": "color" },
+      "650": { "value": "#0B667F", "type": "color" },
+      "700": { "value": "#0B5F76", "type": "color" },
+      "800": { "value": "#094C5E", "type": "color" },
+      "900": { "value": "#073C4B", "type": "color" },
+      "950": { "value": "#10262C", "type": "color" }
+    },
+    "emerald": {
+      "50":  { "value": "#E7F6EE", "type": "color" },
+      "100": { "value": "#C6EAD6", "type": "color" },
+      "200": { "value": "#96D5B4", "type": "color" },
+      "600": { "value": "#047857", "type": "color" },
+      "700": { "value": "#036148", "type": "color" }
+    },
+    "amber": {
+      "50":  { "value": "#FEF4E4", "type": "color" },
+      "100": { "value": "#FCE9C4", "type": "color" },
+      "200": { "value": "#F6D79F", "type": "color" },
+      "600": { "value": "#B45309", "type": "color" },
+      "700": { "value": "#92400E", "type": "color" }
+    },
+    "rose": {
+      "50":  { "value": "#FDECEF", "type": "color" },
+      "100": { "value": "#FBD8DF", "type": "color" },
+      "200": { "value": "#F6B5C1", "type": "color" },
+      "600": { "value": "#BE123C", "type": "color" },
+      "700": { "value": "#9F0F32", "type": "color" }
+    },
+    "indigo": {
+      "50":  { "value": "#EEF2FF", "type": "color" },
+      "100": { "value": "#E0E7FF", "type": "color" },
+      "200": { "value": "#C7D2FE", "type": "color" },
+      "600": { "value": "#4F46E5", "type": "color" },
+      "700": { "value": "#4338CA", "type": "color" }
+    },
+    "blue": {
+      "50":  { "value": "#E7F1FB", "type": "color" },
+      "600": { "value": "#1D4ED8", "type": "color" }
+    },
+    "dk": {
+      "$description": "Dark-theme primitive ramp. MVP ships light only; see design-tokens.css section 14.",
+      "bg":             { "value": "#0B1016", "type": "color" },
+      "surface":        { "value": "#141A22", "type": "color" },
+      "surface-raised":{ "value": "#242C37", "type": "color" },
+      "border":        { "value": "#2A323D", "type": "color" },
+      "border-soft":   { "value": "#212932", "type": "color" },
+      "border-strong": { "value": "#5A6675", "type": "color" },
+      "fg":            { "value": "#F1F5F9", "type": "color" },
+      "fg-2":          { "value": "#CBD5E1", "type": "color" },
+      "fg-muted":      { "value": "#94A3B8", "type": "color" },
+      "fg-subtle":     { "value": "#7C8CA1", "type": "color" },
+      "fg-disabled":   { "value": "#55606E", "type": "color" },
+      "fg-on-accent":  { "value": "#04222B", "type": "color" },
+      "accent":         { "value": "#4FD1D9", "type": "color" },
+      "accent-hover":  { "value": "#7EE0E6", "type": "color" },
+      "accent-active": { "value": "#A5EAEE", "type": "color" },
+      "accent-soft":   { "value": "#10313A", "type": "color" },
+      "accent-soft-fg":{ "value": "#8FE3E8", "type": "color" },
+      "success":       { "value": "#34D399", "type": "color" },
+      "success-soft":  { "value": "#0C2B22", "type": "color" },
+      "warning":       { "value": "#FBBF24", "type": "color" },
+      "warning-soft":  { "value": "#2E2008", "type": "color" },
+      "danger":        { "value": "#FB7185", "type": "color" },
+      "danger-soft":   { "value": "#33101C", "type": "color" },
+      "info":          { "value": "#A5B4FC", "type": "color" },
+      "info-soft":     { "value": "#1A2038", "type": "color" }
+    }
+  },
+
+  "semantic": {
+    "$description": "A2 layer. Role-named, not hue-named. This is what components consume.",
+
+    "bg":              { "value": "var(--gray-50)",  "type": "color", "$description": "App canvas. Cool paper white, never pure white, to cut glare in long sessions." },
+    "surface":         { "value": "var(--gray-0)",  "type": "color" },
+    "surface-warm":    { "value": "var(--gray-100)", "type": "color", "$description": "B-slot. Third-level surface: chip/track/inset backgrounds." },
+    "surface-sunken":  { "value": "var(--gray-100)", "type": "color", "$description": "B-slot. Recessed wells such as the example-sentence block." },
+    "surface-active":  { "value": "var(--teal-50)",  "type": "color", "$description": "B-slot. Accent-tinted row/panel for the current card's sense." },
+
+    "fg":              { "value": "var(--gray-900)", "type": "color", "$description": "Primary text. Near-black with a cool cast, never #000000." },
+    "fg-2":            { "value": "var(--gray-700)", "type": "color", "$description": "B-slot. Secondary text: definitions, body copy." },
+    "muted":           { "value": "var(--gray-600)", "type": "color" },
+    "meta":            { "value": "var(--gray-550)", "type": "color", "$description": "B-slot. Timestamps, placeholders, tertiary metadata. Measured 4.84:1 on white." },
+    "fg-disabled":     { "value": "var(--gray-450)", "type": "color", "$description": "Inactive controls. Exempt from WCAG 1.4.3 but kept above 2.5:1." },
+    "fg-on-accent":    { "value": "#FFFFFF", "type": "color", "$description": "Allowed exception: pure white on accent fills." },
+
+    "border":          { "value": "var(--gray-250)", "type": "color", "$description": "Decorative separators and card edges." },
+    "border-soft":     { "value": "var(--gray-150)", "type": "color", "$description": "B-slot. In-component dividers (divide-y)." },
+    "border-strong":   { "value": "var(--gray-575)", "type": "color", "$description": "Interactive boundaries: inputs, outlined buttons. Measured 3.47:1 vs white (meets WCAG 1.4.11)." },
+
+    "accent":          { "value": "var(--teal-600)", "type": "color", "$description": "Primary CTA, focus ring, progress. Measured 5.36:1 on white." },
+    "accent-hover":    { "value": "var(--teal-700)", "type": "color" },
+    "accent-active":   { "value": "var(--teal-800)", "type": "color" },
+    "accent-soft":     { "value": "var(--teal-50)",  "type": "color", "$description": "Accent-tinted background for chips and selected states." },
+    "accent-soft-fg":  { "value": "var(--teal-650)", "type": "color", "$description": "Accent-readable text on --accent-soft." },
+
+    "success":         { "value": "var(--emerald-600)", "type": "color", "$description": "认识 / Good / correct. Measured 5.48:1." },
+    "success-soft":    { "value": "var(--emerald-50)",  "type": "color" },
+    "warn":            { "value": "var(--amber-600)",   "type": "color", "$description": "模糊 / Hard / stale backup. Measured 5.02:1." },
+    "warn-soft":       { "value": "var(--amber-50)",   "type": "color" },
+    "danger":          { "value": "var(--rose-600)",    "type": "color", "$description": "不认识 / Again / 斩词. Measured 6.29:1." },
+    "danger-soft":     { "value": "var(--rose-50)",     "type": "color" },
+    "info":            { "value": "var(--indigo-700)",  "type": "color", "$description": "熟词僻义 badge / annotation. Solid indigo, no gradient. Measured 7.90:1." },
+    "info-soft":       { "value": "var(--indigo-50)",   "type": "color" }
+  },
+
+  "typography": {
+    "$description": "A1-structure. Product register: one family, fixed rem ladder, ratio 1.125-1.2.",
+    "font": {
+      "display": {
+        "value": "\"Inter\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Source Han Sans SC\", \"Noto Sans CJK SC\", sans-serif",
+        "type": "fontFamily"
+      },
+      "body": {
+        "value": "\"Inter\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Source Han Sans SC\", \"Noto Sans CJK SC\", sans-serif",
+        "type": "fontFamily"
+      },
+      "word": {
+        "value": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+        "type": "fontFamily",
+        "$description": "Headword, IPA phonetic, and all tabular statistics. JetBrains Mono must be SELF-HOSTED (no runtime CDN, offline requirement)."
+      },
+      "mono": {
+        "value": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+        "type": "fontFamily"
+      }
+    },
+    "size": {
+      "2xs":  { "value": "0.6875rem", "type": "dimension", "$description": "11px. Mono stat strip only. Never for reading text." },
+      "xs":   { "value": "0.75rem",   "type": "dimension", "$description": "12px. Badges, captions." },
+      "sm":   { "value": "0.8125rem", "type": "dimension", "$description": "13px. Dense UI labels." },
+      "base": { "value": "0.875rem",  "type": "dimension", "$description": "14px. Default UI text in panels." },
+      "md":   { "value": "1rem",      "type": "dimension", "$description": "16px. Body copy, Chinese definitions." },
+      "lg":   { "value": "1.125rem",  "type": "dimension", "$description": "18px. Example sentences (en/zh)." },
+      "xl":   { "value": "1.25rem",   "type": "dimension", "$description": "20px. Modal titles." },
+      "2xl":  { "value": "1.5rem",    "type": "dimension", "$description": "24px. Section titles." },
+      "3xl":  { "value": "1.875rem",  "type": "dimension", "$description": "30px. Headword on phone." },
+      "4xl":  { "value": "2.25rem",   "type": "dimension", "$description": "36px. Headword on desktop." }
+    },
+    "weight": {
+      "read":     { "value": 400, "type": "fontWeight" },
+      "emphasize":{ "value": 510, "type": "fontWeight", "$description": "Requires self-hosted Inter Variable. Static-Inter fallback: 500." },
+      "announce": { "value": 590, "type": "fontWeight", "$description": "Requires self-hosted Inter Variable. Static-Inter fallback: 600." }
+    },
+    "leading": {
+      "display": { "value": 1.15, "type": "number" },
+      "tight":   { "value": 1.25, "type": "number" },
+      "snug":    { "value": 1.5,  "type": "number" },
+      "body":    { "value": 1.7,  "type": "number", "$description": "Chinese body copy. Generous to reduce fatigue over 30-90 min sessions." }
+    },
+    "tracking": {
+      "display": { "value": "-0.02em", "type": "dimension" },
+      "tight":   { "value": "-0.01em", "type": "dimension" },
+      "body":    { "value": "0",       "type": "dimension" },
+      "caps":    { "value": "0.08em",  "type": "dimension", "$description": "ALL CAPS labels. Spec requires >=0.06em." },
+      "mono":    { "value": "0",       "type": "dimension" }
+    }
+  },
+
+  "space": {
+    "$description": "4px grid. Only these values are legal.",
+    "1":  { "value": "4px",  "type": "dimension" },
+    "2":  { "value": "8px",  "type": "dimension" },
+    "3":  { "value": "12px", "type": "dimension" },
+    "4":  { "value": "16px", "type": "dimension" },
+    "5":  { "value": "20px", "type": "dimension" },
+    "6":  { "value": "24px", "type": "dimension" },
+    "8":  { "value": "32px", "type": "dimension" },
+    "10": { "value": "40px", "type": "dimension" },
+    "12": { "value": "48px", "type": "dimension" },
+    "16": { "value": "64px", "type": "dimension" },
+    "20": { "value": "80px", "type": "dimension" }
+  },
+
+  "radius": {
+    "$description": "Card radius capped at 14px; modal at 18px. Above 24px reads as AI rounding.",
+    "sm":   { "value": "6px",     "type": "dimension" },
+    "md":   { "value": "10px",    "type": "dimension" },
+    "lg":   { "value": "14px",    "type": "dimension" },
+    "xl":   { "value": "18px",    "type": "dimension" },
+    "pill": { "value": "9999px",  "type": "dimension" }
+  },
+
+  "elevation": {
+    "$description": "Three levels. Never combine a 1px border with shadow blur >=16px on the same element (ghost-card antipattern).",
+    "flat":   { "value": "none", "type": "boxShadow" },
+    "ring":   { "value": "0 0 0 1px var(--border)", "type": "boxShadow" },
+    "raised": { "value": "0 1px 2px rgba(20,26,34,0.04), 0 2px 6px rgba(20,26,34,0.05)", "type": "boxShadow" },
+    "overlay":{ "value": "0 8px 24px rgba(20,26,34,0.10), 0 2px 6px rgba(20,26,34,0.06)", "type": "boxShadow" },
+    "focus":  { "value": "0 0 0 3px rgba(14,116,144,0.35)", "type": "boxShadow" }
+  },
+
+  "motion": {
+    "$description": "Convergence value 150ms. Bounce easing is banned project-wide.",
+    "duration": {
+      "instant": { "value": "80ms",  "type": "duration" },
+      "fast":    { "value": "150ms", "type": "duration" },
+      "base":    { "value": "200ms", "type": "duration" },
+      "slow":    { "value": "260ms", "type": "duration" }
+    },
+    "easing": {
+      "standard":   { "value": "cubic-bezier(0.2, 0, 0, 1)",  "type": "cubicBezier" },
+      "decelerate": { "value": "cubic-bezier(0, 0, 0.2, 1)",    "type": "cubicBezier" }
+    },
+    "banned": {
+      "$description": "P0-6. CI regex must reject these in any stylesheet or inline style.",
+      "bounceEasing": { "value": "cubic-bezier(0.68, -0.55, 0.265, 1.55)", "type": "string" }
+    }
+  },
+
+  "layout": {
+    "container-max":     { "value": "1200px", "type": "dimension" },
+    "gutter-phone":      { "value": "12px",   "type": "dimension" },
+    "gutter-tablet":     { "value": "16px",   "type": "dimension" },
+    "gutter-desktop":    { "value": "24px",   "type": "dimension" },
+    "header-height":     { "value": "56px",   "type": "dimension" },
+    "mobilebar-min-btn": { "value": "48px",   "type": "dimension", "$description": "Exceeds the 44px WCAG 2.5.5 floor with margin for thumb reach." },
+    "mobilebar-primary-btn": { "value": "52px", "type": "dimension" },
+    "section-y-phone":   { "value": "16px",   "type": "dimension" },
+    "section-y-desktop": { "value": "24px",   "type": "dimension" },
+    "app-bottom-pad":    { "value": "calc(96px + env(safe-area-inset-bottom))", "type": "dimension", "$description": "Main padding-bottom under the fixed mobile action bar." },
+    "grid-cols-phone":   { "value": 4,  "type": "number" },
+    "grid-cols-tablet":  { "value": 8,  "type": "number" },
+    "grid-cols-desktop": { "value": 12, "type": "number" },
+    "breakpoint": {
+      "sm": { "value": "640px",  "type": "dimension" },
+      "md": { "value": "768px",  "type": "dimension", "$description": "PIVOT: below this the bottom action bar replaces rating buttons and the aside stacks." },
+      "lg": { "value": "1024px", "type": "dimension" },
+      "xl": { "value": "1280px", "type": "dimension" }
+    }
+  },
+
+  "z": {
+    "base":     { "value": 0,   "type": "number" },
+    "header":   { "value": 30,  "type": "number" },
+    "mobilebar":{ "value": 40,  "type": "number" },
+    "scrim":    { "value": 50,  "type": "number" },
+    "modal":    { "value": 60,  "type": "number" },
+    "toast":    { "value": 70,  "type": "number" }
+  },
+
+  "component": {
+    "$description": "B-slot + C-extension. Per-component state tokens. Frontend consumes these; do not inline raw hex.",
+    "button": {
+      "primary": {
+        "bg":        { "value": "var(--accent)",        "type": "color" },
+        "bg-hover":  { "value": "var(--accent-hover)",  "type": "color" },
+        "bg-active": { "value": "var(--accent-active)", "type": "color" },
+        "fg":        { "value": "var(--fg-on-accent)",  "type": "color" },
+        "radius":    { "value": "var(--radius-md)",     "type": "dimension" },
+        "padding-y": { "value": "10px", "type": "dimension" },
+        "padding-x": { "value": "16px", "type": "dimension" }
+      },
+      "secondary": {
+        "bg":        { "value": "transparent", "type": "color" },
+        "bg-hover":  { "value": "var(--surface-warm)", "type": "color" },
+        "border":    { "value": "1px solid var(--border-strong)", "type": "border" },
+        "fg":        { "value": "var(--fg-2)", "type": "color" }
+      },
+      "ghost": {
+        "bg":       { "value": "transparent", "type": "color" },
+        "bg-hover": { "value": "var(--surface-warm)", "type": "color" },
+        "fg":       { "value": "var(--muted)", "type": "color" }
+      },
+      "destructive": {
+        "bg":       { "value": "var(--danger-soft)", "type": "color" },
+        "fg":       { "value": "var(--danger)", "type": "color" },
+        "border":   { "value": "1px solid var(--danger)", "type": "border" }
+      },
+      "disabled": {
+        "bg":       { "value": "var(--surface-warm)", "type": "color" },
+        "fg":       { "value": "var(--fg-disabled)",  "type": "color" },
+        "opacity":  { "value": 1, "type": "number", "$description": "Use token colour, not opacity, so disabled text stays legible." }
+      }
+    },
+    "input": {
+      "bg":           { "value": "var(--surface)", "type": "color" },
+      "border":       { "value": "1px solid var(--border-strong)", "type": "border" },
+      "fg":           { "value": "var(--fg)", "type": "color" },
+      "placeholder":  { "value": "var(--meta)", "type": "color" },
+      "focus-border": { "value": "1px solid var(--accent)", "type": "border" },
+      "focus-ring":   { "value": "var(--elev-focus)", "type": "boxShadow" },
+      "error-border": { "value": "1px solid var(--danger)", "type": "border" },
+      "error-ring":   { "value": "0 0 0 3px rgba(190,18,60,0.25)", "type": "boxShadow" },
+      "disabled-bg":  { "value": "var(--surface-warm)", "type": "color" },
+      "disabled-fg":  { "value": "var(--fg-disabled)", "type": "color" },
+      "radius":       { "value": "var(--radius-sm)", "type": "dimension" }
+    },
+    "card": {
+      "bg":      { "value": "var(--surface)", "type": "color" },
+      "border":  { "value": "1px solid var(--border)", "type": "border" },
+      "radius":  { "value": "var(--radius-lg)", "type": "dimension" },
+      "padding": { "value": "var(--space-4)", "type": "dimension" },
+      "$description": "Border OR shadow, never a 1px border with blur>=16px. Hover changes border colour only."
+    },
+    "rating": {
+      "$description": "Rating chips are NEUTRAL until selected. Only the chosen one takes its semantic colour. This keeps the per-screen chromatic count low.",
+      "idle-bg":     { "value": "var(--surface)", "type": "color" },
+      "idle-border": { "value": "1px solid var(--border-strong)", "type": "border" },
+      "idle-fg":     { "value": "var(--fg-2)", "type": "color" },
+      "again-bg":    { "value": "var(--danger)",  "type": "color" },
+      "again-fg":    { "value": "#FFFFFF", "type": "color" },
+      "hard-bg":     { "value": "var(--warn)",    "type": "color" },
+      "hard-fg":     { "value": "#FFFFFF", "type": "color" },
+      "good-bg":     { "value": "var(--success)", "type": "color" },
+      "good-fg":     { "value": "#FFFFFF", "type": "color" }
+    },
+    "badge": {
+      "core-bg":      { "value": "var(--accent-soft)", "type": "color" },
+      "core-fg":      { "value": "var(--accent-soft-fg)", "type": "color" },
+      "eccentric-bg": { "value": "var(--info-soft)", "type": "color" },
+      "eccentric-fg": { "value": "var(--info)", "type": "color" },
+      "custom-bg":    { "value": "#E7F1FB", "type": "color" },
+      "custom-fg":    { "value": "#1D4ED8", "type": "color" },
+      "basic-bg":     { "value": "var(--surface-warm)", "type": "color" },
+      "basic-fg":     { "value": "var(--muted)", "type": "color" },
+      "radius":       { "value": "var(--radius-sm)", "type": "dimension" }
+    },
+    "freq": {
+      "$description": "Exam-frequency bar. Data encoding, so it may use the accent hue.",
+      "track": { "value": "#E3E8EE", "type": "color" },
+      "fill":  { "value": "var(--accent)", "type": "color" },
+      "height":{ "value": "6px", "type": "dimension" },
+      "width": { "value": "56px", "type": "dimension" },
+      "width-desktop": { "value": "96px", "type": "dimension" }
+    },
+    "modal": {
+      "scrim":   { "value": "rgba(20,26,34,0.44)", "type": "color" },
+      "bg":      { "value": "var(--surface)", "type": "color" },
+      "radius":  { "value": "var(--radius-xl)", "type": "dimension" },
+      "padding": { "value": "var(--space-6)", "type": "dimension" },
+      "shadow":  { "value": "var(--elev-overlay)", "type": "boxShadow" },
+      "max-width": { "value": "640px", "type": "dimension" }
+    },
+    "mobilebar": {
+      "bg":     { "value": "var(--surface)", "type": "color" },
+      "border": { "value": "1px solid var(--border)", "type": "border" },
+      "padding-x": { "value": "var(--space-3)", "type": "dimension" },
+      "padding-top": { "value": "var(--space-2)", "type": "dimension" },
+      "padding-bottom": { "value": "calc(var(--space-2) + env(safe-area-inset-bottom))", "type": "dimension" },
+      "gap": { "value": "var(--space-2)", "type": "dimension" }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "examflow-vocab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check": "node scripts/run-checks.mjs"
+  },
+  "dependencies": {
+    "dexie": "4.4.6",
+    "dexie-react-hooks": "^1.1.7",
+    "lucide-react": "1.60.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "ts-fsrs": "5.4.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "22.20.5",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "5.2.0",
+    "autoprefixer": "10.6.1",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "6.1.1",
+    "fake-indexeddb": "6.2.6",
+    "globals": "16.5.0",
+    "jsdom": "^26.1.0",
+    "postcss": "8.5.31",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "vite": "7.3.7",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "3.2.7",
+    "workbox-build": "7.4.1",
+    "workbox-window": "7.4.1"
+  }
+}

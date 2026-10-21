@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ExamFlow Vocab">
+  <!-- 品牌标：石墨青圆角方块 + 白色「队列」字形（三条递宽横条 = 复习队列，圆点 = 下一张） -->
+  <rect width="32" height="32" rx="7" fill="#0E7490" />
+  <g fill="#FFFFFF">
+    <rect x="7" y="8"  width="18" height="3" rx="1.5" />
+    <rect x="7" y="13" width="13" height="3" rx="1.5" />
+    <rect x="7" y="18" width="9"  height="3" rx="1.5" />
+    <circle cx="22.5" cy="24" r="2" />
+  </g>
+</svg>

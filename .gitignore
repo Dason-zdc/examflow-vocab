@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# E2E artifacts (regenerable via scripts/e2e/smoke.py)
+dist-e2e/
+
+# ETL source-data cache (ECDICT/lemma 等，重跑 etl_build_pack.py 会重新下载)
+scripts/.cache/
+
+# Logs & temp
+*.log
+.tmp-*
+nohup.out
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

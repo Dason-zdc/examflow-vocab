@@ -1,0 +1,564 @@
+/* ==========================================================================
+ * ExamFlow Vocab — Design Tokens
+ * --------------------------------------------------------------------------
+ * Register : Product  (benchmark = earned familiarity: Linear / Notion / Stripe)
+ * Platform : web      (desktop browser + mobile browser, PWA)
+ * Theme    : light only for MVP. Dark is scaffolded at section 14 and
+ *            activates with <html class="dark"> or <html data-theme="dark">.
+ *            No component edits required to switch.
+ *
+ * NAMING CONTRACT — two parallel name sets, both always defined:
+ *   1. --color-*   consumed by tailwind.config.ts and index.css
+ *                  (pre-existing scaffold contract: do not rename)
+ *   2. --bg / --surface / --fg / --muted / --accent / --border ...
+ *                  canonical short names, recommended for new component
+ *                  code. Every short name resolves to set 1, so the two
+ *                  sets cannot drift apart.
+ *
+ *   JSON mirror: src/styles/design-tokens.json
+ *   semantic.bg.value -> --color-bg -> --bg
+ *
+ * Rules enforced here:
+ *   P0-2  No gradient, no glow border, no decorative glass.
+ *   P0-4  Raw hex appears ONLY in section 1 (primitive) and in the
+ *         dark-theme scaffold (section 14), which is itself a set of
+ *         primitive values for a theme MVP does not ship.
+ *   P0-6  No bounce easing anywhere. --motion-banned-bounce exists only
+ *         so CI has a stable string to grep and reject.
+ * ========================================================================== */
+
+:root {
+  /* ----------------------------------------------------------------------
+   * 1. PRIMITIVE — the ONLY place raw hex values are written.
+   *    A1-identity / A1-structure. Components never reference these.
+   * -------------------------------------------------------------------- */
+
+  /* Neutral: cool graphite. Blue undertone, never warm beige. */
+  --gray-0:   #FFFFFF;
+  --gray-25:  #FAFBFC;
+  --gray-50:  #F5F7FA;   /* app canvas */
+  --gray-100: #EEF1F5;   /* warm / sunken surfaces */
+  --gray-150: #ECEFF3;   /* in-component dividers */
+  --gray-200: #E1E6EB;   /* frequency track, chips */
+  --gray-250: #DDE3EA;   /* card borders (decorative) */
+  --gray-300: #CBD2DB;
+  --gray-400: #A9B3BF;
+  --gray-450: #97A1B0;   /* disabled foreground */
+  --gray-500: #7C879A;
+  --gray-550: #697284;   /* tertiary metadata — 4.84:1 on white */
+  --gray-575: #7E8B9C;   /* interactive boundary — 3.47:1 on white */
+  --gray-600: #545E6D;   /* muted */
+  --gray-700: #3B4450;   /* fg-2 */
+  --gray-800: #242C37;
+  --gray-900: #141A22;   /* fg — near-black, never #000 */
+  --gray-950: #0B1016;
+
+  /* Accent: graphite teal. Clear of Anki blue, Duolingo green, and the
+     default indigo that reads as generated. */
+  --teal-50:  #E6F4F7;
+  --teal-100: #C2E7EE;
+  --teal-200: #8FD3E0;
+  --teal-300: #55B8CC;
+  --teal-400: #2A9AB2;
+  --teal-500: #12879E;
+  --teal-600: #0E7490;   /* accent — 5.36:1 on white */
+  --teal-650: #0B667F;   /* accent text on accent-soft */
+  --teal-700: #0B5F76;   /* accent-hover */
+  --teal-800: #094C5E;   /* accent-active */
+  --teal-900: #073C4B;
+  --teal-950: #10262C;   /* dark theme surface-active */
+
+  /* Status ramps */
+  --emerald-50:  #E7F6EE;
+  --emerald-100: #C6EAD6;
+  --emerald-200: #96D5B4;
+  --emerald-600: #047857;   /* success — 5.48:1 */
+  --emerald-700: #036148;
+
+  --amber-50:  #FEF4E4;
+  --amber-100: #FCE9C4;
+  --amber-200: #F6D79F;
+  --amber-600: #B45309;   /* warning — 5.02:1 */
+  --amber-700: #92400E;
+
+  --rose-50:  #FDECEF;
+  --rose-100: #FBD8DF;
+  --rose-200: #F6B5C1;
+  --rose-600: #BE123C;   /* danger — 6.29:1 */
+  --rose-700: #9F0F32;
+
+  --indigo-50:  #EEF2FF;
+  --indigo-100: #E0E7FF;
+  --indigo-200: #C7D2FE;
+  --indigo-600: #4F46E5;
+  --indigo-700: #4338CA;   /* info / eccentric badge — 7.90:1 */
+
+  /* Blue: custom-word badge only */
+  --blue-50:  #E7F1FB;
+  --blue-600: #1D4ED8;
+
+  /* ---- Dark-theme primitives (MVP does not ship; see section 14) ---- */
+  --dk-bg:            #0B1016;
+  --dk-surface:       #141A22;
+  --dk-surface-raised:#242C37;
+  --dk-border:        #2A323D;
+  --dk-border-soft:   #212932;
+  --dk-border-strong: #5A6675;
+  --dk-fg:            #F1F5F9;
+  --dk-fg-2:          #CBD5E1;
+  --dk-fg-muted:      #94A3B8;
+  --dk-fg-subtle:     #7C8CA1;
+  --dk-fg-disabled:   #55606E;
+  --dk-fg-on-accent:  #04222B;
+  --dk-accent:        #4FD1D9;
+  --dk-accent-hover:  #7EE0E6;
+  --dk-accent-active: #A5EAEE;
+  --dk-accent-soft:   #10313A;
+  --dk-accent-soft-fg:#8FE3E8;
+  --dk-success:       #34D399;
+  --dk-success-soft:  #0C2B22;
+  --dk-warning:       #FBBF24;
+  --dk-warning-soft:  #2E2008;
+  --dk-danger:        #FB7185;
+  --dk-danger-soft:   #33101C;
+  --dk-info:          #A5B4FC;
+  --dk-info-soft:     #1A2038;
+
+  /* ----------------------------------------------------------------------
+   * 2. SEMANTIC — set 1: --color-* (pre-existing scaffold contract)
+   * -------------------------------------------------------------------- */
+
+  /* Surfaces */
+  --color-bg:             var(--gray-50);
+  --color-surface:        var(--gray-0);
+  --color-surface-raised: var(--gray-0);
+  --color-surface-sunken: var(--gray-100);
+  --color-surface-warm:   var(--gray-100);
+  --color-surface-active: var(--teal-50);
+
+  /* Foreground */
+  --color-fg:          var(--gray-900);
+  --color-fg-2:        var(--gray-700);
+  --color-fg-muted:    var(--gray-600);
+  --color-fg-subtle:   var(--gray-550);
+  --color-fg-disabled: var(--gray-450);
+  --color-fg-on-accent: #FFFFFF;   /* allowed exception: pure white */
+
+  /* Borders */
+  --color-border:        var(--gray-250);
+  --color-border-soft:   var(--gray-150);
+  --color-border-strong: var(--gray-575);
+
+  /* Accent */
+  --color-accent:        var(--teal-600);
+  --color-accent-hover:  var(--teal-700);
+  --color-accent-active: var(--teal-800);
+  --color-accent-fg:     #FFFFFF;   /* allowed exception: pure white */
+  --color-accent-soft:   var(--teal-50);
+  --color-accent-soft-fg: var(--teal-650);
+
+  /* Status */
+  --color-success:      var(--emerald-600);
+  --color-success-soft: var(--emerald-50);
+  --color-warning:      var(--amber-600);
+  --color-warning-soft: var(--amber-50);
+  --color-danger:       var(--rose-600);
+  --color-danger-soft:  var(--rose-50);
+  --color-info:         var(--indigo-700);
+  --color-info-soft:    var(--indigo-50);
+
+  --color-focus-ring: var(--color-accent);
+
+  /* ----------------------------------------------------------------------
+   * 3. SEMANTIC — set 2: canonical short names (preferred in new code)
+   * -------------------------------------------------------------------- */
+
+  --bg:             var(--color-bg);
+  --surface:        var(--color-surface);
+  --surface-raised: var(--color-surface-raised);
+  --surface-sunken: var(--color-surface-sunken);
+  --surface-warm:   var(--color-surface-warm);
+  --surface-active: var(--color-surface-active);
+
+  --fg:           var(--color-fg);
+  --fg-2:         var(--color-fg-2);
+  --muted:        var(--color-fg-muted);
+  --meta:         var(--color-fg-subtle);
+  --fg-disabled:  var(--color-fg-disabled);
+  --fg-on-accent: var(--color-fg-on-accent);
+
+  --border:        var(--color-border);
+  --border-soft:   var(--color-border-soft);
+  --border-strong: var(--color-border-strong);
+
+  --accent:         var(--color-accent);
+  --accent-hover:   var(--color-accent-hover);
+  --accent-active:  var(--color-accent-active);
+  --accent-soft:    var(--color-accent-soft);
+  --accent-soft-fg: var(--color-accent-soft-fg);
+
+  --success:      var(--color-success);
+  --success-soft: var(--color-success-soft);
+  --warn:         var(--color-warning);
+  --warn-soft:    var(--color-warning-soft);
+  --danger:       var(--color-danger);
+  --danger-soft:  var(--color-danger-soft);
+  --info:         var(--color-info);
+  --info-soft:    var(--color-info-soft);
+
+  /* ----------------------------------------------------------------------
+   * 4. TYPOGRAPHY (A1-structure)
+   *    Product register: one family, fixed rem ladder, ratio 1.125-1.2.
+   *    Latin font first so English is never rendered in a CJK face.
+   * -------------------------------------------------------------------- */
+
+  --font-display: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                  "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans SC",
+                  system-ui, sans-serif;
+  --font-body:    "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                  "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans SC",
+                  system-ui, sans-serif;
+
+  /* Headword, IPA, and tabular statistics.
+     SELF-HOST JetBrains Mono: a runtime CDN font breaks PRD 2.4 / 8.1. */
+  --font-word: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono",
+               Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: var(--font-word);
+
+  /* Size ladder */
+  --text-2xs:  0.6875rem;  /* 11px  mono stat strip only, never reading text */
+  --text-xs:   0.75rem;    /* 12px  badges, captions */
+  --text-sm:   0.8125rem;  /* 13px  dense panel labels */
+  --text-base: 0.875rem;   /* 14px  default panel UI text */
+  --text-md:   1rem;       /* 16px  body copy, CN definitions (floor) */
+  --text-lg:   1.125rem;   /* 18px  example sentences */
+  --text-xl:   1.25rem;    /* 20px  modal titles */
+  --text-2xl:  1.5rem;     /* 24px  section titles */
+  --text-3xl:  1.875rem;   /* 30px  headword, phone */
+  --text-4xl:  2.25rem;    /* 36px  headword, desktop */
+
+  /* Weight: three levels. 510/590 require self-hosted Inter Variable. */
+  --font-weight-read:      400;
+  --font-weight-emphasize: 510;
+  --font-weight-announce:  590;
+
+  /* Leading */
+  --leading-display: 1.15;
+  --leading-tight:   1.25;
+  --leading-snug:    1.5;
+  --leading-body:    1.7;   /* CN body copy: generous on purpose */
+
+  /* Tracking */
+  --tracking-display: -0.02em;
+  --tracking-tight:   -0.01em;
+  --tracking-body:    0;
+  --tracking-caps:    0.08em;  /* spec floor is 0.06em */
+  --tracking-mono:    0;
+
+  /* ----------------------------------------------------------------------
+   * 5. SPACING — 4px grid. Only these 11 values are legal.
+   * -------------------------------------------------------------------- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ----------------------------------------------------------------------
+   * 6. RADIUS — card capped at 14px, modal at 18px.
+   *    Above 24px reads as generated rounding.
+   * -------------------------------------------------------------------- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-pill: 9999px;
+
+  /* ----------------------------------------------------------------------
+   * 7. ELEVATION — never pair a 1px border with shadow blur >= 16px on
+   *    one element (ghost-card antipattern).
+   * -------------------------------------------------------------------- */
+  --elev-flat:    none;
+  --elev-ring:    0 0 0 1px var(--color-border);
+  --elev-raised:  0 1px 2px rgba(20,26,34,0.04), 0 2px 6px rgba(20,26,34,0.05);
+  --elev-overlay: 0 8px 24px rgba(20,26,34,0.10), 0 2px 6px rgba(20,26,34,0.06);
+  --elev-focus:   0 0 0 3px rgba(14,116,144,0.35);
+
+  /* ----------------------------------------------------------------------
+   * 8. MOTION — convergence value 150ms.
+   * -------------------------------------------------------------------- */
+  --motion-instant: 80ms;
+  --motion-fast:    150ms;
+  --motion-base:    200ms;
+  --motion-slow:    260ms;
+  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+
+  /* BANNED (P0-6). CI grep target only. Never used as a value. */
+  --motion-banned-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ----------------------------------------------------------------------
+   * 9. LAYOUT
+   * -------------------------------------------------------------------- */
+  --container-max:    1200px;
+  --gutter-phone:     12px;
+  --gutter-tablet:    16px;
+  --gutter-desktop:   24px;
+  --header-height:    56px;
+  --section-y-phone:   16px;
+  --section-y-desktop: 24px;
+  --app-bottom-pad:   calc(96px + env(safe-area-inset-bottom, 0px));
+
+  /* Touch targets (mobile) */
+  --touch-min:         44px;  /* WCAG 2.5.5 floor */
+  --mobilebar-btn:     48px;  /* rating buttons */
+  --mobilebar-primary: 52px;  /* 下一个: largest surface in the thumb zone */
+
+  /* ----------------------------------------------------------------------
+   * 10. Z-INDEX
+   * -------------------------------------------------------------------- */
+  --z-base:      0;
+  --z-header:    30;
+  --z-mobilebar: 40;
+  --z-scrim:     50;
+  --z-modal:     60;
+  --z-toast:     70;
+}
+
+/* --------------------------------------------------------------------------
+ * 11. COMPONENT SLOTS (B-slot / C-extension)
+ *     Frontend consumes these names. Do not substitute raw hex.
+ * -------------------------------------------------------------------------- */
+
+:root {
+  /* ---- Buttons ---- */
+  --button-primary-bg:        var(--color-accent);
+  --button-primary-bg-hover:  var(--color-accent-hover);
+  --button-primary-bg-active: var(--color-accent-active);
+  --button-primary-fg:        var(--color-fg-on-accent);
+
+  --button-secondary-bg:       transparent;
+  --button-secondary-bg-hover: var(--color-surface-warm);
+  --button-secondary-border:   1px solid var(--color-border-strong);
+  --button-secondary-fg:       var(--color-fg-2);
+
+  --button-ghost-bg:       transparent;
+  --button-ghost-bg-hover: var(--color-surface-warm);
+  --button-ghost-fg:       var(--color-fg-muted);
+
+  --button-danger-bg:     var(--color-danger-soft);
+  --button-danger-fg:     var(--color-danger);
+  --button-danger-border: 1px solid var(--color-danger);
+
+  --button-disabled-bg:      var(--color-surface-warm);
+  --button-disabled-fg:      var(--color-fg-disabled);
+  --button-disabled-opacity: 1;
+
+  --button-radius:      var(--radius-md);
+  --button-padding-y:   10px;
+  --button-padding-x:   16px;
+  --button-font-size:   var(--text-base);
+  --button-font-weight: var(--font-weight-emphasize);
+
+  /* ---- Inputs ---- */
+  --input-bg:           var(--color-surface);
+  --input-border:       1px solid var(--color-border-strong);
+  --input-fg:           var(--color-fg);
+  --input-placeholder:  var(--color-fg-subtle);
+  --input-focus-border: 1px solid var(--color-accent);
+  --input-focus-ring:   var(--elev-focus);
+  --input-error-border: 1px solid var(--color-danger);
+  --input-error-ring:   0 0 0 3px rgba(190,18,60,0.25);
+  --input-disabled-bg:  var(--color-surface-warm);
+  --input-disabled-fg:  var(--color-fg-disabled);
+  --input-radius:       var(--radius-sm);
+
+  /* ---- Cards ---- */
+  --card-bg:      var(--color-surface);
+  --card-border:  1px solid var(--color-border);
+  --card-radius:  var(--radius-lg);
+  --card-padding: var(--space-4);
+
+  /* ---- Rating chips ----
+     Idle state is NEUTRAL. Only the selected chip takes a semantic fill.
+     This is what keeps the visible chromatic count at 2 on the study screen. */
+  --rating-idle-bg:     var(--color-surface);
+  --rating-idle-border: 1px solid var(--color-border-strong);
+  --rating-idle-fg:     var(--color-fg-2);
+
+  --rating-again-bg: var(--color-danger);
+  --rating-again-fg: var(--color-fg-on-accent);
+  --rating-hard-bg:  var(--color-warning);
+  --rating-hard-fg:  var(--color-fg-on-accent);
+  --rating-good-bg:  var(--color-success);
+  --rating-good-fg:  var(--color-fg-on-accent);
+
+  /* ---- Badges ---- */
+  --badge-core-bg:      var(--color-accent-soft);
+  --badge-core-fg:      var(--color-accent-soft-fg);
+  --badge-eccentric-bg: var(--color-info-soft);
+  --badge-eccentric-fg: var(--color-info);
+  --badge-custom-bg:    var(--blue-50);
+  --badge-custom-fg:    var(--blue-600);
+  --badge-basic-bg:     var(--color-surface-warm);
+  --badge-basic-fg:     var(--color-fg-muted);
+  --badge-radius:       var(--radius-sm);
+
+  /* ---- Frequency bar ----
+     Data encoding rather than decoration, so the accent hue is allowed. */
+  --freq-track:  var(--gray-200);
+  --freq-fill:   var(--color-accent);
+  --freq-height: 6px;
+  --freq-width: 56px;
+  --freq-width-desktop: 96px;
+
+  /* ---- Modal / Drawer ---- */
+  --modal-scrim:     rgba(20,26,34,0.44);
+  --modal-bg:        var(--color-surface);
+  --modal-radius:    var(--radius-xl);
+  --modal-padding:   var(--space-6);
+  --modal-shadow:    var(--elev-overlay);
+  --modal-max-width: 640px;
+
+  /* ---- Mobile action bar ---- */
+  --mobilebar-bg:             var(--color-surface);
+  --mobilebar-border:         1px solid var(--color-border);
+  --mobilebar-padding-x:      var(--space-3);
+  --mobilebar-padding-top:    var(--space-2);
+  --mobilebar-padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  --mobilebar-gap:            var(--space-2);
+
+  /* ---- Progress ---- */
+  --progress-track:  var(--color-surface-warm);
+  --progress-fill:   var(--color-accent);
+  --progress-height: 4px;
+}
+
+/* --------------------------------------------------------------------------
+ * 12. BASE TYPOGRAPHY APPLICATION
+ * -------------------------------------------------------------------------- */
+
+html {
+  font-size: 16px;               /* rem baseline; never below */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+  font-weight: var(--font-weight-read);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Headword, lemma, IPA, and tabular statistics. */
+.u-word,
+.u-phonetic,
+.u-stat {
+  font-family: var(--font-word);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-mono);
+}
+
+.u-caps {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-emphasize);
+}
+
+/* --------------------------------------------------------------------------
+ * 13. MOTION APPLICATION
+ * -------------------------------------------------------------------------- */
+
+.u-interactive {
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color     var(--motion-fast) var(--ease-standard),
+    color            var(--motion-fast) var(--ease-standard);
+}
+
+.u-enter {
+  animation: ef-enter var(--motion-base) var(--ease-decelerate) both;
+}
+
+@keyframes ef-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* WCAG 2.3.3 / 2.2.2. Kill every transition and animation; state
+   changes still apply, only the interpolation is removed. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .u-enter { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+ * 14. DARK THEME SCAFFOLD — NOT SHIPPED IN MVP
+ *     Activate with <html class="dark"> or <html data-theme="dark">.
+ *     Only the --color-* set is overridden here; the short aliases resolve
+ *     through it, so no component change is needed.
+ *
+ *     TODO before enabling: re-measure contrast for the eccentric badge
+ *     (--color-info #A5B4FC) and the frequency bar (--color-accent #4FD1D9)
+ *     against --color-surface #141A22. A naive inversion of the light ramp
+ *     fails both. Also verify the tabular-numeral rendering of the stat strip
+ *     on the dark surface.
+ * -------------------------------------------------------------------------- */
+
+:root[data-theme="dark"],
+.dark {
+  --color-bg:             var(--dk-bg);
+  --color-surface:        var(--dk-surface);
+  --color-surface-raised: var(--dk-surface-raised);
+  --color-surface-sunken: var(--dk-bg);
+  --color-surface-warm:   var(--dk-surface-raised);
+  --color-surface-active: var(--teal-950);
+
+  --color-fg:          var(--dk-fg);
+  --color-fg-2:        var(--dk-fg-2);
+  --color-fg-muted:    var(--dk-fg-muted);
+  --color-fg-subtle:   var(--dk-fg-subtle);
+  --color-fg-disabled: var(--dk-fg-disabled);
+  --color-fg-on-accent: var(--dk-fg-on-accent);
+
+  --color-border:        var(--dk-border);
+  --color-border-soft:   var(--dk-border-soft);
+  --color-border-strong: var(--dk-border-strong);
+
+  --color-accent:         var(--dk-accent);
+  --color-accent-hover:   var(--dk-accent-hover);
+  --color-accent-active:  var(--dk-accent-active);
+  --color-accent-fg:      var(--dk-fg-on-accent);
+  --color-accent-soft:    var(--dk-accent-soft);
+  --color-accent-soft-fg: var(--dk-accent-soft-fg);
+
+  --color-success:      var(--dk-success);
+  --color-success-soft: var(--dk-success-soft);
+  --color-warning:      var(--dk-warning);
+  --color-warning-soft: var(--dk-warning-soft);
+  --color-danger:       var(--dk-danger);
+  --color-danger-soft:  var(--dk-danger-soft);
+  --color-info:         var(--dk-info);
+  --color-info-soft:    var(--dk-info-soft);
+
+  --elev-raised:  0 1px 2px rgba(0,0,0,0.40), 0 2px 6px rgba(0,0,0,0.30);
+  --elev-overlay: 0 8px 24px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.35);
+  --elev-focus:   0 0 0 3px rgba(79,209,217,0.40);
+}
