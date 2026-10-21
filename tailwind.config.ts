@@ -131,6 +131,10 @@ const config: Config = {
       },
       maxWidth: {
         container: 'var(--container-max)',
+        // Tailwind 默认 spacing 只到 96，弹窗宽度档位需显式登记
+        '120': '30rem',
+        '160': '40rem',
+        '200': '50rem',
       },
       zIndex: {
         header:    'var(--z-header)',

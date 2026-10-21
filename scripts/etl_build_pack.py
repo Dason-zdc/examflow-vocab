@@ -102,6 +102,10 @@ ECDICT_CSV = os.path.join(CACHE_DIR, "ecdict.csv")
 LEMMA_TXT = os.path.join(CACHE_DIR, "lemma.en.txt")
 WORDROOT_JSON = os.path.join(CACHE_DIR, "wordroot.txt")
 TIER_A_PY = os.path.join(SCRIPT_DIR, "tier_a_sentences.py")
+# 语料例句 picks（由 scripts/enrich_pack_sentences.py 产出）：存在时优先使用，
+# 让「全量重建」与「已发布数据包」用语料例句，而不是退回模板句。
+SENTENCE_PICKS_JSON = os.path.join(SCRIPT_DIR, "build", "sentence-picks.json")
+CORPUS_NOTE = "语料例句（Tatoeba 英中句对，CC BY 2.0 FR）"
 
 # --------------------------------------------------------------------------
 # 可调阈值（全部集中在此，便于评审与回归）
@@ -786,10 +790,49 @@ def tier_b_sentence(lemma: str, sense: dict, exchange: str) -> dict:
     return {"en": en, "zh": zh, "surface": surface}
 
 
+def load_sentence_picks() -> dict:
+    """{word_id: {sense_id: pick}}；文件不存在时返回空 dict（退回旧行为）"""
+    if not os.path.exists(SENTENCE_PICKS_JSON):
+        return {}
+    with open(SENTENCE_PICKS_JSON, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    out = {}
+    for wid, picks in (raw.get("words") or {}).items():
+        out[wid] = {p["senseId"]: p for p in picks}
+    return out
+
+
+SENTENCE_PICKS = load_sentence_picks()
+
+
 def build_sentences(word_id: str, lemma: str, senses: list, row: dict,
                     tier_a_entry, seq) -> list:
     out = []
     exchange = row.get("exchange", "")
+    picks = SENTENCE_PICKS.get(word_id)
+    if picks is not None:
+        # 语料模式：只产出可溯源的语料例句；无语料的义项标 sentencePending，不用模板句填充
+        for sense in senses:
+            pick = picks.get(sense["id"])
+            if not pick:
+                sense["sentencePending"] = True
+                continue
+            seq[0] += 1
+            out.append({
+                "id": "x_%s_%d" % (slugify_lemma(lemma), seq[0]),
+                "wordId": word_id,
+                "senseId": sense["id"],
+                "en": pick["en"],
+                "zh": pick["zh"],
+                "surfaceForm": pick["surface"],
+                "provenance": {
+                    "type": "ADAPTED",
+                    "note": CORPUS_NOTE,
+                    "origin": "TATOEBA",
+                    "sourceId": pick["sourceId"],
+                },
+            })
+        return out
     for i, sense in enumerate(senses):
         sid = sense["id"]
         authored = None
@@ -1236,7 +1279,8 @@ def verify(out_dir: str, words=None) -> list:
             covered.add(x["senseId"])
             if x.get("provenance", {}).get("type") != "ADAPTED":
                 errors.append("%s provenance 非 ADAPTED" % x["id"])
-        for sid in sense_ids_here - covered:
+        pending = {s["id"] for s in w["senses"] if s.get("sentencePending")}
+        for sid in sense_ids_here - covered - pending:
             errors.append("%s 的义项 %s 无例句且未标记 sentencePending" % (w["id"], sid))
 
         for c in w.get("confusables", []):

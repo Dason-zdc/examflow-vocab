@@ -69,6 +69,12 @@ export class PackDictionary {
     return [...prefix, ...contains].slice(0, limit);
   }
 
+  /** 合并自定义生词（点词即查加入），返回新词典实例；空数组直接返回自身 */
+  withExtraWords(extra: readonly PackWord[]): PackDictionary {
+    if (extra.length === 0) return this;
+    return new PackDictionary([...this.words, ...extra], this.lemmaMap);
+  }
+
   /** 词库页浏览：按 senseWeight 降序分页 */
   browse(offset: number, limit: number): PackWord[] {
     return [...this.words]

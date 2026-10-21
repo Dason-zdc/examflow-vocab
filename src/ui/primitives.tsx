@@ -7,7 +7,7 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-active',
-  secondary: 'bg-surface text-fg-2 border border-line-strong hover:bg-warm',
+  secondary: 'border border-line-strong bg-surface text-fg-2 hover:bg-warm hover:text-fg',
   ghost: 'bg-transparent text-muted hover:bg-warm hover:text-fg-2',
   danger: 'bg-transparent text-danger border border-line-strong hover:bg-danger-soft',
 };
@@ -25,7 +25,9 @@ export function Button({ variant = 'secondary', loading, block, children, classN
       type="button"
       disabled={disabled || loading}
       className={[
-        'inline-flex items-center justify-center gap-2 rounded-md font-medium',
+        // 内边距/字号/字重走 button token（--button-padding-x/y、--button-font-size/weight）
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5',
+        'text-base font-emphasize leading-tight',
         'min-h-11 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         VARIANT_CLASS[variant],
@@ -65,10 +67,10 @@ export function IconButton({ label, children, className = '', ...rest }: IconBut
   );
 }
 
-/** 面板容器（elev-ring：1px 边框，无阴影） */
+/** 面板容器（对齐原型：白卡片 + 16px 圆角 + 极轻阴影） */
 export function Panel({ title, caption, children, className = '' }: { title?: string; caption?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-lg border border-line bg-surface ${className}`}>
+    <section className={`rounded-2xl border border-line bg-surface shadow-raised ${className}`}>
       {title ? (
         <header className="flex items-baseline justify-between gap-2 border-b border-line-soft px-4 py-3">
           <h2 className="text-sm font-emphasize text-fg">{title}</h2>
@@ -133,7 +135,7 @@ export function Notice({ tone, icon, children }: { tone: 'warn' | 'danger' | 'in
           ? 'bg-info-soft text-info'
           : 'text-meta';
   return (
-    <p role="status" className={`flex items-start gap-2 rounded-sm px-3 py-2 text-xs leading-snug ${toneClass}`}>
+    <p role="status" className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-snug ${toneClass}`}>
       {icon}
       <span>{children}</span>
     </p>
@@ -143,7 +145,7 @@ export function Notice({ tone, icon, children }: { tone: 'warn' | 'danger' | 'in
 /** 统计块（计划面板 2 列网格用） */
 export function StatBlock({ label, value, caption }: { label: string; value: ReactNode; caption?: ReactNode }) {
   return (
-    <div className="rounded-md bg-warm px-3 py-2">
+    <div className="rounded-xl bg-warm px-3 py-2">
       <div className="text-xs text-muted">{label}</div>
       <div className="font-word text-lg text-fg tabular-nums">{value}</div>
       {caption ? <div className="text-2xs text-meta">{caption}</div> : null}

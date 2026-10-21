@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { Card, ExamCode, Settings, UserWordMeta } from '../domain/types';
+import type { Card, CustomWord, ExamCode, Settings, UserWordMeta } from '../domain/types';
+import { withDefaultSettings } from '../domain/types';
 import { SETTINGS_KEY, type ExamFlowDB } from '../storage/db';
 import type { PackDictionary } from '../content/dictionary';
 import type { Scheduler } from '../domain/scheduler';
 import { tierOfCard } from './sessionBuilder';
+import { summarizeSpelling, type SpellingStats } from './spellingUseCase';
 
 /**
  * 只读查询层（架构 §应用层）：UI 不直接写 Dexie 语句，统一从这里出。
@@ -15,8 +17,7 @@ export function useSettings(db: ExamFlowDB | null): Settings | undefined {
     if (!db) return undefined;
     const row = await db.settings.get(SETTINGS_KEY);
     if (!row) return undefined;
-    const { id: _id, ...rest } = row;
-    return rest as Settings;
+    return withDefaultSettings(row);
   }, [db]);
 }
 
@@ -25,7 +26,7 @@ export function useCardsForExam(db: ExamFlowDB | null, exam: ExamCode): Card[] |
   return useLiveQuery(async () => {
     if (!db) return undefined;
     const rows = await db.cards.where('exam').equals(exam).toArray();
-    return rows.map(({ dueAt: _dueAt, ...rest }) => rest as Card);
+    return rows.map(({ dueAt: _dueAt, updatedAt: _updatedAt, ...rest }) => rest as Card);
   }, [db, exam]);
 }
 
@@ -47,7 +48,7 @@ export function useDueCards(db: ExamFlowDB | null, exam: ExamCode, now: number):
       .equals(exam)
       .and((c) => !c.suspended && c.dueAt <= now)
       .toArray();
-    return rows.map(({ dueAt: _dueAt, ...rest }) => rest as Card);
+    return rows.map(({ dueAt: _dueAt, updatedAt: _updatedAt, ...rest }) => rest as Card);
   }, [db, exam, now]);
 }
 
@@ -123,6 +124,20 @@ export interface CoverageStats {
   reviewedToday: number;
 }
 
+/** 自定义生词（点词即查加入） */
+export function useCustomWords(db: ExamFlowDB | null): CustomWord[] | undefined {
+  return useLiveQuery(async () => (db ? (await db.customWords.toArray()) as CustomWord[] : undefined), [db]);
+}
+
+/** 拼写练习统计（S-01）：不影响识记卡调度 */
+export function useSpellingStats(db: ExamFlowDB | null): SpellingStats | undefined {
+  return useLiveQuery(async () => {
+    if (!db) return undefined;
+    const logs = await db.spellingLogs.toArray();
+    return summarizeSpelling(logs);
+  }, [db]);
+}
+
 /**
  * 北极星指标 + 计划面板统计（PRD §3 / §5.3）：
  * 核心覆盖率 = 核心卡中 R ≥ 0.9 的占比。R 由 scheduler 现算，不落库。
@@ -138,7 +153,7 @@ export function useCoverage(
   return useLiveQuery(async () => {
     if (!db || !dictionary) return undefined;
     const rows = await db.cards.where('exam').equals(exam).toArray();
-    const cards = rows.map(({ dueAt: _dueAt, ...rest }) => rest as Card);
+    const cards = rows.map(({ dueAt: _dueAt, updatedAt: _updatedAt, ...rest }) => rest as Card);
     let coreTotal = 0;
     let mastered = 0;
     let newLearnedToday = 0;

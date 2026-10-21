@@ -1,7 +1,8 @@
 import type { Card, ExamCode, Settings } from '../domain/types';
+import { DEFAULT_SETTINGS, withDefaultSettings } from '../domain/types';
 import { buildCardsForWord } from '../domain/scheduler';
 import type { PackDictionary } from '../content/dictionary';
-import { SETTINGS_KEY, toCardRow, type ExamFlowDB } from '../storage/db';
+import { SETTINGS_KEY, toCardRow, type ExamFlowDB, type SettingsRow } from '../storage/db';
 
 /**
  * 装机 / 切换考试用例：为词书建卡。
@@ -21,10 +22,21 @@ export async function ensureCardsForExam(
   db: ExamFlowDB,
   dictionary: PackDictionary,
   exam: ExamCode,
-  options: { excludeBasic: boolean; batchSize?: number; onProgress?: (done: number, total: number) => void },
+  options: {
+    excludeBasic: boolean;
+    batchSize?: number;
+    onProgress?: (done: number, total: number) => void;
+    /**
+     * 卡片同步版本。默认 0 = 派生卡：内容可由词书重建，不参与云同步，
+     * 也允许云端真实学习进度覆盖它。重置进度时传一个更大的版本，
+     * 让重建的空卡严格新于墓碑，避免被云端旧进度拉回。
+     */
+    version?: number;
+  },
 ): Promise<EnsureCardsResult> {
   const now = Date.now();
   const batchSize = options.batchSize ?? 500;
+  const version = options.version ?? 0;
 
   const existing = new Set(await db.cards.where('exam').equals(exam).primaryKeys());
   const candidates = dictionary.wordsForExam(exam);
@@ -45,12 +57,17 @@ export async function ensureCardsForExam(
   let created = 0;
   for (let i = 0; i < pending.length; i += batchSize) {
     const batch = pending.slice(i, i + batchSize);
-    await db.cards.bulkPut(batch.map(toCardRow));
+    await db.cards.bulkPut(batch.map((card) => toCardRow(card, version)));
     created += batch.length;
     options.onProgress?.(created, pending.length);
   }
 
   return { created, skippedBasic, alreadyExists: existing.size };
+}
+
+/** 设置行 → 领域设置（补齐历史版本缺失字段，剥离 id / updatedAt） */
+function settingsOf(row: SettingsRow): Settings {
+  return withDefaultSettings(row);
 }
 
 /** 读取设置；不存在时写入默认值（examDate 由引导流程另设） */
@@ -60,18 +77,15 @@ export async function ensureSettings(
   examDate: string,
 ): Promise<Settings> {
   const row = await db.settings.get(SETTINGS_KEY);
-  if (row) {
-    const { id: _id, ...rest } = row;
-    return rest as Settings;
-  }
+  if (row) return settingsOf(row);
   const settings: Settings = { ...defaults, examDate };
-  await db.settings.put({ id: SETTINGS_KEY, ...settings });
+  await db.settings.put({ id: SETTINGS_KEY, ...settings, updatedAt: Date.now() });
   return settings;
 }
 
 /** 整份保存设置（设置弹窗保存 / 标记备份时间用） */
 export async function saveSettings(db: ExamFlowDB, next: Settings): Promise<Settings> {
-  await db.settings.put({ id: SETTINGS_KEY, ...next });
+  await db.settings.put({ id: SETTINGS_KEY, ...next, updatedAt: Date.now() });
   return next;
 }
 
@@ -82,11 +96,9 @@ export async function activateExam(
   exam: ExamCode,
 ): Promise<{ settings: Settings; cards: EnsureCardsResult }> {
   const row = await db.settings.get(SETTINGS_KEY);
-  const current = row ? ({ ...row } as unknown as Settings) : null;
-  const settings: Settings = current
-    ? { ...current, exam }
-    : { exam, examDate: '', dayStartHour: 4, maxNewPerDay: 50, maxReviewPerDay: 300, excludeBasicWords: true, accent: 'uk', autoPlayAudio: false, dataPackVersion: '0.0.0', lastBackupAt: null, schemaVersion: 1 };
-  await db.settings.put({ id: SETTINGS_KEY, ...settings });
+  const current = row ? settingsOf(row) : null;
+  const settings: Settings = current ? { ...current, exam } : { ...DEFAULT_SETTINGS, examDate: '', exam };
+  await db.settings.put({ id: SETTINGS_KEY, ...settings, updatedAt: Date.now() });
   const cards = await ensureCardsForExam(db, dictionary, exam, { excludeBasic: settings.excludeBasicWords });
   return { settings, cards };
 }

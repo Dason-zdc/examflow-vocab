@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Settings } from '../domain/types';
+import type { SyncController } from '../app/sync/useSync';
 import { Button, IconButton } from './primitives';
 import { ICON_SIZE, ICON_STROKE, Loader2, X } from './icons';
+import { SyncSettingsPanel } from './SyncSettingsPanel';
 
 /** 设置弹窗（UIUX P4）：焦点陷阱 + Esc 关闭 + 字段校验 */
 
@@ -9,6 +11,7 @@ export interface SettingsModalProps {
   open: boolean;
   settings: Settings;
   saving: boolean;
+  sync: SyncController;
   onClose: () => void;
   onSave: (next: Settings) => Promise<void>;
 }
@@ -21,6 +24,9 @@ interface Draft {
   accent: 'uk' | 'us';
   excludeBasicWords: boolean;
   autoPlayAudio: boolean;
+  aiBaseUrl: string;
+  aiApiKey: string;
+  aiModel: string;
 }
 
 function today(): string {
@@ -36,6 +42,9 @@ function toDraft(s: Settings): Draft {
     accent: s.accent,
     excludeBasicWords: s.excludeBasicWords,
     autoPlayAudio: s.autoPlayAudio,
+    aiBaseUrl: s.aiBaseUrl ?? '',
+    aiApiKey: s.aiApiKey ?? '',
+    aiModel: s.aiModel ?? '',
   };
 }
 
@@ -49,10 +58,13 @@ function validate(d: Draft): Partial<Record<keyof Draft, string>> {
   if (!Number.isInteger(nRev) || nRev < 10 || nRev > 2000) errors.maxReviewPerDay = '每日复习上限需在 10 到 2000 之间。';
   const nDay = Number(d.dayStartHour);
   if (!Number.isInteger(nDay) || nDay < 0 || nDay > 12) errors.dayStartHour = '日切时间需在 0 到 12 之间。';
+  const aiFilled = [d.aiBaseUrl, d.aiApiKey, d.aiModel].filter((v) => v.trim().length > 0).length;
+  if (aiFilled > 0 && aiFilled < 3) errors.aiBaseUrl = 'Base URL、Key、模型名需同时填写或全部留空。';
+  else if (d.aiBaseUrl.trim() && !/^https?:\/\//i.test(d.aiBaseUrl.trim())) errors.aiBaseUrl = 'Base URL 需以 http:// 或 https:// 开头。';
   return errors;
 }
 
-export function SettingsModal({ open, settings, saving, onClose, onSave }: SettingsModalProps) {
+export function SettingsModal({ open, settings, saving, sync, onClose, onSave }: SettingsModalProps) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings));
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -111,6 +123,9 @@ export function SettingsModal({ open, settings, saving, onClose, onSave }: Setti
       accent: draft.accent,
       excludeBasicWords: draft.excludeBasicWords,
       autoPlayAudio: draft.autoPlayAudio,
+      aiBaseUrl: draft.aiBaseUrl.trim().replace(/\/+$/, ''),
+      aiApiKey: draft.aiApiKey.trim(),
+      aiModel: draft.aiModel.trim(),
     });
   }
 
@@ -206,6 +221,50 @@ export function SettingsModal({ open, settings, saving, onClose, onSave }: Setti
             />
             出新卡时自动播放发音
           </label>
+
+          <div className="flex flex-col gap-2 border-t border-line-soft pt-3 sm:col-span-2">
+            <h3 className="text-sm font-emphasize text-fg-2">AI 私教（P1，可选）</h3>
+            <p className="text-xs leading-snug text-muted">
+              浏览器直连 OpenAI 兼容接口（DeepSeek / OpenAI / 硅基流动等）。Key 只保存在本机，不会进入备份文件；部分服务商不支持浏览器跨域调用。
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label="Base URL" error={errors.aiBaseUrl}>
+                <input
+                  value={draft.aiBaseUrl}
+                  onChange={(e) => setDraft({ ...draft, aiBaseUrl: e.target.value })}
+                  placeholder="https://api.deepseek.com/v1"
+                  aria-label="AI Base URL"
+                  spellCheck={false}
+                  className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 font-word text-sm text-fg placeholder:text-meta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                />
+              </Field>
+              <Field label="API Key">
+                <input
+                  type="password"
+                  value={draft.aiApiKey}
+                  onChange={(e) => setDraft({ ...draft, aiApiKey: e.target.value })}
+                  placeholder="sk-..."
+                  aria-label="AI API Key"
+                  autoComplete="off"
+                  className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 font-word text-sm text-fg placeholder:text-meta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                />
+              </Field>
+              <Field label="模型名">
+                <input
+                  value={draft.aiModel}
+                  onChange={(e) => setDraft({ ...draft, aiModel: e.target.value })}
+                  placeholder="deepseek-chat"
+                  aria-label="AI 模型名"
+                  spellCheck={false}
+                  className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 font-word text-sm text-fg placeholder:text-meta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-line-soft px-4 py-4">
+          <SyncSettingsPanel sync={sync} />
         </div>
 
         <footer className="flex justify-end gap-2 border-t border-line-soft px-4 py-3">

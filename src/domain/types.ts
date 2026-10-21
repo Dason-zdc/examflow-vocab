@@ -34,6 +34,8 @@ export interface Sense {
   enDef?: string;
   /** 按考试分别统计 */
   examStats: Partial<Record<ExamCode, SenseExamStat>>;
+  /** 该义项暂无可用语料例句（数据包 v1.3 起不再用模板句填充） */
+  sentencePending?: boolean;
 }
 
 export interface Etymology {
@@ -86,6 +88,10 @@ export interface RealExamProvenance {
 export interface AdaptedProvenance {
   type: 'ADAPTED';
   note: string;
+  /** 例句出处：AUTHORED 人工撰写 / TATOEBA 语料句对 / TEMPLATE 模板生成 */
+  origin?: 'AUTHORED' | 'TATOEBA' | 'TEMPLATE';
+  /** 语料句对 ID（Tatoeba sentence id），用于溯源与署名 */
+  sourceId?: string;
 }
 
 export type Provenance = RealExamProvenance | AdaptedProvenance;
@@ -179,6 +185,10 @@ export interface Settings {
   lastBackupAt: number | null;
   /** 本地存储结构版本，用于迁移 */
   schemaVersion: number;
+  /** AI 私教（P1，自备 OpenAI 兼容接口）：Base URL / Key / 模型名；空串表示未配置 */
+  aiBaseUrl: string;
+  aiApiKey: string;
+  aiModel: string;
 }
 
 export const DEFAULT_SETTINGS: Omit<Settings, 'examDate'> = {
@@ -192,7 +202,28 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'examDate'> = {
   dataPackVersion: '0.0.0',
   lastBackupAt: null,
   schemaVersion: 1,
+  aiBaseUrl: '',
+  aiApiKey: '',
+  aiModel: '',
 };
+
+/**
+ * 设置行 → 完整 Settings：抹平历史版本缺失字段。
+ *
+ * 老版本写入的 IndexedDB 设置行没有后加的字段（如 AI 配置），
+ * 直接当 Settings 用会在 `.trim()` 之类的地方炸掉；所有读入口统一走这里。
+ * 同时剥离存储行专有的 id / updatedAt。
+ */
+export function withDefaultSettings(value: Partial<Settings & { id?: string; updatedAt?: number }> | null | undefined): Settings {
+  const merged: Record<string, unknown> = { ...DEFAULT_SETTINGS, examDate: '' };
+  if (value) {
+    for (const [key, field] of Object.entries(value)) {
+      if (key === 'id' || key === 'updatedAt') continue;
+      if (field !== undefined) merged[key] = field;
+    }
+  }
+  return merged as unknown as Settings;
+}
 
 /** 复习优先级层级（PRD v0.3 §5.3，与数据包 tier 对齐） */
 export type CardTier = 'CORE' | 'ADVANCED' | 'EXTENDED';

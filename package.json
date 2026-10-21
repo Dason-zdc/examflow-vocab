@@ -4,14 +4,20 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.5.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "api": "node --experimental-sqlite server/server.js",
+    "dev:api": "node --experimental-sqlite --watch server/server.js",
+    "dev:full": "concurrently -n web,api -c cyan,magenta \"npm run dev\" \"npm run dev:api\"",
+    "start": "node --experimental-sqlite server/server.js",
+    "serve": "npm run build && npm run start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:api": "node --experimental-sqlite server/smoke-test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "check": "node scripts/run-checks.mjs"
@@ -33,6 +39,7 @@
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "5.2.0",
     "autoprefixer": "10.6.1",
+    "concurrently": "^10.0.6",
     "eslint": "9.39.5",
     "eslint-plugin-react-hooks": "6.1.1",
     "fake-indexeddb": "6.2.6",

@@ -202,7 +202,8 @@ export function StudySessionProvider({
         const rows = await db.cards.where('wordId').equals(entry.wordId).toArray();
         const affected = resumeWordCards(rows, entry.wordId);
         if (affected.length > 0) {
-          await db.cards.bulkUpdate(affected.map((id) => ({ key: id, changes: { suspended: false } })));
+          const now = Date.now();
+          await db.cards.bulkUpdate(affected.map((id) => ({ key: id, changes: { suspended: false, updatedAt: now } })));
         }
         dispatch({ type: 'RESET' });
       }
@@ -219,7 +220,8 @@ export function StudySessionProvider({
         const entry = suspendWordForUndo(cards, wordId);
         const affected = entry.suspendedCardIds ?? [];
         if (affected.length > 0) {
-          await db.cards.bulkUpdate(affected.map((id) => ({ key: id, changes: { suspended: true } })));
+          const now = Date.now();
+          await db.cards.bulkUpdate(affected.map((id) => ({ key: id, changes: { suspended: true, updatedAt: now } })));
         }
         // 队列可能包含被斩的卡，直接重建会话
         dispatch({ type: 'RESET' });

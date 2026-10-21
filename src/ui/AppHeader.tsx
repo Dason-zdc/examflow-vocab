@@ -1,7 +1,6 @@
 import type { ExamCode, Settings } from '../domain/types';
-import { EXAM_CODES } from '../domain/types';
 import { IconButton } from './primitives';
-import { ICON_SIZE, ICON_STROKE, LayoutDashboard, Search, Settings as SettingsIcon } from './icons';
+import { BookOpen, ICON_SIZE, ICON_STROKE, LayoutDashboard, Search, Settings as SettingsIcon } from './icons';
 import { daysToExamLabel } from './format';
 
 /** 全局外壳（UIUX §7.0）：Header + 本轮进度条 + 主导航 */
@@ -12,11 +11,14 @@ export interface AppHeaderProps {
   daysToExam: number | null;
   progress: { done: number; total: number } | null;
   view: 'study' | 'vocab';
+  /** 已发布数据包的考试（只有这些能切换） */
+  exams: ExamCode[];
   searchQuery: string;
   onSearch: (q: string) => void;
   onView: (v: 'study' | 'vocab') => void;
   onSwitchExam: (exam: ExamCode) => void;
   onOpenSettings: () => void;
+  onOpenDashboard: () => void;
 }
 
 const EXAM_LABEL: Record<ExamCode, string> = {
@@ -34,18 +36,22 @@ export function AppHeader({
   daysToExam,
   progress,
   view,
+  exams,
   searchQuery,
   onSearch,
   onView,
   onSwitchExam,
   onOpenSettings,
+  onOpenDashboard,
 }: AppHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-header border-b border-line bg-surface backdrop-blur" style={{ height: 56 }}>
         <div className="mx-auto flex h-full max-w-container items-center gap-3 px-3 md:px-6">
           <span className="flex items-center gap-2" aria-label="ExamFlow Vocab">
-            <span className="inline-block h-6 w-6 rounded-sm bg-accent" aria-hidden />
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-announce text-on-accent" aria-hidden>
+              E
+            </span>
             <span className="hidden text-sm font-emphasize text-fg sm:inline">ExamFlow Vocab</span>
           </span>
 
@@ -57,7 +63,7 @@ export function AppHeader({
               aria-label="选择考试"
               className="min-h-11 rounded-md border border-line-strong bg-surface px-2 text-sm text-fg-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              {EXAM_CODES.map((code) => (
+              {exams.map((code) => (
                 <option key={code} value={code}>
                   {EXAM_LABEL[code]}
                 </option>
@@ -95,7 +101,7 @@ export function AppHeader({
                   view === v ? 'bg-accent-soft text-accent-soft-fg' : 'text-muted hover:bg-warm hover:text-fg-2'
                 }`}
               >
-                {v === 'vocab' ? <LayoutDashboard size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'vocab' ? <BookOpen size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
                 {VIEW_LABEL[v]}
               </button>
             ))}
@@ -108,6 +114,10 @@ export function AppHeader({
           >
             {daysToExamLabel(daysToExam)}
           </button>
+
+          <IconButton label="学习仪表盘" onClick={onOpenDashboard} className="hidden sm:inline-flex">
+            <LayoutDashboard size={ICON_SIZE.standalone} strokeWidth={ICON_STROKE} aria-hidden />
+          </IconButton>
 
           <IconButton label="设置" onClick={onOpenSettings}>
             <SettingsIcon size={ICON_SIZE.standalone} strokeWidth={ICON_STROKE} aria-hidden />

@@ -14,6 +14,7 @@ function makeHandlers(overrides: Partial<HotkeyHandlers> = {}): HotkeyHandlers {
     onPlay: vi.fn(),
     onSuspend: vi.fn(),
     onUndo: vi.fn(),
+    onSpell: vi.fn(),
     onToggleEtymology: vi.fn(),
     onToggleConfusables: vi.fn(),
     ...overrides,

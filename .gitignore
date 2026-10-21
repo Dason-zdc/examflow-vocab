@@ -4,6 +4,12 @@ node_modules/
 # Build output
 dist/
 
+# 后端 SQLite 数据（本地运行产物，不入库）
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
 # E2E artifacts (regenerable via scripts/e2e/smoke.py)
 dist-e2e/
 

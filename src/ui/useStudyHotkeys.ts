@@ -19,6 +19,8 @@ export interface HotkeyHandlers {
   onPlay: (shift: boolean) => void;
   onSuspend: () => void;
   onUndo: () => void;
+  /** S：拼写练习（S-01） */
+  onSpell: () => void;
   /** R：词根区块展开 / 收起 */
   onToggleEtymology: () => void;
   /** F：形近词区块展开 / 收起 */
@@ -71,6 +73,10 @@ export function useStudyHotkeys(handlers: HotkeyHandlers, enabled: boolean): voi
         case 'r':
         case 'R':
           handlers.onToggleEtymology();
+          break;
+        case 's':
+        case 'S':
+          handlers.onSpell();
           break;
         case 'f':
         case 'F':

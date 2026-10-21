@@ -4,6 +4,7 @@ import { State } from 'ts-fsrs';
 import {
   DEFAULT_DB_NAME,
   ExamFlowDB,
+  SCHEMA_VERSION,
   SETTINGS_KEY,
   fromCardRow,
   probeSchemaVersion,
@@ -33,7 +34,7 @@ describe('db · schema 与索引', () => {
 
   it('分表建立，主键与复合索引可用', async () => {
     const db = await freshDb();
-    expect(await probeSchemaVersion(DEFAULT_DB_NAME)).toBe(1);
+    expect(await probeSchemaVersion(DEFAULT_DB_NAME)).toBe(SCHEMA_VERSION);
 
     await db.cards.bulkPut([
       toCardRow(makeCard('KAOYAN:s_1', { now: NOW, wordId: 'w_a', stability: 5, reps: 3, state: State.Review })),
@@ -116,7 +117,7 @@ describe('db · 迁移钩子', () => {
     const db = await openDatabase({ name: 'mig-fresh' });
     await db.settings.put({ id: SETTINGS_KEY, ...DEFAULT_SETTINGS, examDate: '2026-12-20' });
     const backup = await exportBackup(db);
-    expect(backup.schemaVersion).toBe(1);
+    expect(backup.schemaVersion).toBe(SCHEMA_VERSION);
     db.close();
   });
 

@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      // 自动更新：新版本 SW 就绪即接管并刷新，避免用户长期停留在带缺陷的旧包上
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png'],
       manifest: {
         name: 'ExamFlow Vocab',
@@ -33,6 +34,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': new URL('./src', import.meta.url).pathname },
+  },
+  server: {
+    // 开发态：前端 5173，后端 8787；/api 反代到本地后端，生产由后端同进程托管
+    proxy: {
+      '/api': { target: 'http://localhost:8787', changeOrigin: false },
+    },
   },
   test: {
     environment: 'node',

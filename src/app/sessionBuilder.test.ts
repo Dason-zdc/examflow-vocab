@@ -48,6 +48,9 @@ function settings(overrides: Partial<Settings> = {}): Settings {
     dataPackVersion: '1.1.0',
     lastBackupAt: null,
     schemaVersion: 1,
+    aiBaseUrl: '',
+    aiApiKey: '',
+    aiModel: '',
     ...overrides,
   };
 }

@@ -13,5 +13,5 @@ createRoot(container).render(
   </StrictMode>,
 );
 
-// PWA：新版本就绪时自动刷新（registerType: prompt 的轻量提示由弹层版本处理）
+// PWA：autoUpdate 策略下新版本就绪会自动接管并刷新（见 vite.config registerType）
 registerSW({ immediate: true });

@@ -1,3 +1,4 @@
+import type { Settings } from '../domain/types';
 import type { BackupFile } from '../storage/backupService';
 import {
   cardFromBackup,
@@ -5,7 +6,7 @@ import {
   reviewLogFromBackup,
   validateBackup,
 } from '../storage/backupService';
-import type { ExamFlowDB } from '../storage/db';
+import { SETTINGS_KEY, type ExamFlowDB } from '../storage/db';
 import { applyImportPlan, type ImportPlan } from './transactions';
 
 export type ImportMode = 'overwrite' | 'merge';
@@ -73,7 +74,7 @@ export async function importBackup(
     reviewLogs: incomingLogs,
     userWordMeta,
     customWords,
-    settings: file.settings,
+    settings: await withLocalAiKey(db, file.settings),
   };
   await applyImportPlan(db, plan);
 
@@ -85,4 +86,12 @@ export async function importBackup(
     settings: Boolean(file.settings),
     mode,
   };
+}
+
+/** 备份文件不含 AI Key（本机凭证）：导入时保留当前设备的 Key，避免覆盖后凭空丢失 */
+async function withLocalAiKey(db: ExamFlowDB, settings: Settings | null): Promise<Settings | null> {
+  if (!settings) return null;
+  if (settings.aiApiKey) return settings;
+  const current = await db.settings.get(SETTINGS_KEY);
+  return current?.aiApiKey ? { ...settings, aiApiKey: current.aiApiKey } : settings;
 }

@@ -3,11 +3,14 @@ import type { ExamCode, Settings } from '../domain/types';
 import { openDatabase, requestPersistentStorage, type ExamFlowDB } from '../storage/db';
 import { loadPack, type LoadedPack } from '../content/packLoader';
 import { PackDictionary } from '../content/dictionary';
-import { useSettings, useCoverage, type CoverageStats } from '../app/queries';
+import { useSettings, useCoverage, useCustomWords, type CoverageStats } from '../app/queries';
+import { customWordToPackWord } from '../content/customWord';
 import { ensureCardsForExam, ensureSettings, saveSettings } from '../app/onboardingUseCase';
 import { importBackup } from '../app/backupUseCase';
 import { exportBackup, parseBackup, serializeBackup } from '../storage/backupService';
 import { resetExamProgress } from '../app/userWordsUseCase';
+import { useSync, type SyncController } from '../app/sync/useSync';
+import { useAvailableExams } from '../app/useAvailableExams';
 import { DEFAULT_SETTINGS } from '../domain/types';
 import { studyDayOf } from '../domain/clock';
 import { createScheduler } from '../domain/scheduler';
@@ -42,6 +45,14 @@ export interface ExamFlowController {
   resetProgress: () => Promise<void>;
   /** 设置保存后由 UI 触发会话重建 */
   revision: number;
+  /** 云同步：账号、状态与手动同步 */
+  sync: SyncController;
+  /** 已发布数据包的考试（只有这些能切换） */
+  availableExams: ExamCode[];
+  dashboardOpen: boolean;
+  setDashboardOpen: (open: boolean) => void;
+  /** 进度被外部改写（如入门测试）后让会话重排 */
+  refreshPlan: () => void;
 }
 
 export function useExamFlow(): ExamFlowController {
@@ -52,6 +63,7 @@ export function useExamFlow(): ExamFlowController {
   const [view, setView] = useState<ViewKey>('study');
   const [extraNewToday, setExtraNewToday] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const [revision, setRevision] = useState(0);
   const [tick, setTick] = useState(() => Date.now());
   const ensuredRef = useRef<string>('');
@@ -87,6 +99,7 @@ export function useExamFlow(): ExamFlowController {
 
   const exam = settings?.exam;
   const excludeBasic = settings?.excludeBasicWords ?? true;
+  const availableExams = useAvailableExams(exam ?? 'IELTS');
 
   // 3. 加载数据包 + 首次建卡（按 exam+version 幂等）
   useEffect(() => {
@@ -113,7 +126,14 @@ export function useExamFlow(): ExamFlowController {
     };
   }, [db, exam]);
 
-  const dictionary = useMemo(() => (pack ? new PackDictionary(pack.words, pack.lemmaMap) : null), [pack]);
+  const customWords = useCustomWords(db);
+  const dictionary = useMemo(() => {
+    if (!pack) return null;
+    const base = new PackDictionary(pack.words, pack.lemmaMap);
+    if (!exam || !customWords || customWords.length === 0) return base;
+    // 自定义生词并入词典：点词即查加入的词也能进入学习卡视图
+    return base.withExtraWords(customWords.map((word) => customWordToPackWord(word, exam)));
+  }, [pack, customWords, exam]);
 
   // 4. 时钟：30s 一跳，刷新到期标签与覆盖率
   useEffect(() => {
@@ -125,6 +145,7 @@ export function useExamFlow(): ExamFlowController {
   const studyDay = useMemo(() => studyDayOf(now, settings?.dayStartHour ?? 4), [now, settings?.dayStartHour]);
 
   const coverage = useCoverage(db, exam ?? 'IELTS', dictionary, SCHEDULER, now, studyDay);
+  const sync = useSync(db);
 
   const ready = Boolean(db && settings && dictionary && settings.examDate);
 
@@ -193,6 +214,7 @@ export function useExamFlow(): ExamFlowController {
   }, [db, settings, dictionary]);
 
   const addExtraNew = useCallback((n: number) => setExtraNewToday((v) => v + n), []);
+  const refreshPlan = useCallback(() => setRevision((v) => v + 1), []);
 
   return {
     ready,
@@ -216,5 +238,10 @@ export function useExamFlow(): ExamFlowController {
     importBackupFile,
     resetProgress,
     revision,
+    sync,
+    availableExams,
+    dashboardOpen,
+    setDashboardOpen,
+    refreshPlan,
   };
 }

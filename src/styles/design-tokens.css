@@ -33,57 +33,56 @@
    *    A1-identity / A1-structure. Components never reference these.
    * -------------------------------------------------------------------- */
 
-  /* Neutral: cool graphite. Blue undertone, never warm beige. */
+  /* Neutral: slate。与原型（Tailwind slate）一致的冷灰蓝，白卡片 + 浅灰画布。 */
   --gray-0:   #FFFFFF;
-  --gray-25:  #FAFBFC;
-  --gray-50:  #F5F7FA;   /* app canvas */
-  --gray-100: #EEF1F5;   /* warm / sunken surfaces */
-  --gray-150: #ECEFF3;   /* in-component dividers */
-  --gray-200: #E1E6EB;   /* frequency track, chips */
-  --gray-250: #DDE3EA;   /* card borders (decorative) */
-  --gray-300: #CBD2DB;
-  --gray-400: #A9B3BF;
-  --gray-450: #97A1B0;   /* disabled foreground */
-  --gray-500: #7C879A;
-  --gray-550: #697284;   /* tertiary metadata — 4.84:1 on white */
-  --gray-575: #7E8B9C;   /* interactive boundary — 3.47:1 on white */
-  --gray-600: #545E6D;   /* muted */
-  --gray-700: #3B4450;   /* fg-2 */
-  --gray-800: #242C37;
-  --gray-900: #141A22;   /* fg — near-black, never #000 */
-  --gray-950: #0B1016;
+  --gray-25:  #FCFDFE;
+  --gray-50:  #F8FAFC;   /* app canvas */
+  --gray-100: #F1F5F9;   /* warm / sunken surfaces */
+  --gray-150: #EEF2F6;   /* in-component dividers */
+  --gray-200: #E2E8F0;   /* frequency track, chips */
+  --gray-250: #E2E8F0;   /* card borders (decorative) */
+  --gray-300: #CBD5E1;
+  --gray-400: #94A3B8;
+  --gray-450: #94A3B8;   /* disabled foreground */
+  --gray-500: #64748B;
+  --gray-550: #64748B;   /* tertiary metadata */
+  --gray-575: #64748B;   /* interactive boundary */
+  --gray-600: #475569;   /* muted */
+  --gray-700: #334155;   /* fg-2 */
+  --gray-800: #1E293B;
+  --gray-900: #0F172A;   /* fg */
+  --gray-950: #020617;
 
-  /* Accent: graphite teal. Clear of Anki blue, Duolingo green, and the
-     default indigo that reads as generated. */
-  --teal-50:  #E6F4F7;
-  --teal-100: #C2E7EE;
-  --teal-200: #8FD3E0;
-  --teal-300: #55B8CC;
-  --teal-400: #2A9AB2;
-  --teal-500: #12879E;
-  --teal-600: #0E7490;   /* accent — 5.36:1 on white */
-  --teal-650: #0B667F;   /* accent text on accent-soft */
-  --teal-700: #0B5F76;   /* accent-hover */
-  --teal-800: #094C5E;   /* accent-active */
-  --teal-900: #073C4B;
-  --teal-950: #10262C;   /* dark theme surface-active */
+  /* Accent: emerald。对应原型的 emerald 主色；600 用于色块，700 用于文字与主按钮。 */
+  --teal-50:  #ECFDF5;
+  --teal-100: #D1FAE5;
+  --teal-200: #A7F3D0;
+  --teal-300: #6EE7B7;
+  --teal-400: #34D399;
+  --teal-500: #10B981;
+  --teal-600: #059669;   /* accent — 白底文字 3.77:1，仅用于色块 */
+  --teal-650: #047857;   /* accent text on accent-soft */
+  --teal-700: #065F46;   /* accent-hover */
+  --teal-800: #064E3B;   /* accent-active */
+  --teal-900: #053F31;
+  --teal-950: #052E23;   /* dark theme surface-active */
 
   /* Status ramps */
-  --emerald-50:  #E7F6EE;
-  --emerald-100: #C6EAD6;
-  --emerald-200: #96D5B4;
-  --emerald-600: #047857;   /* success — 5.48:1 */
-  --emerald-700: #036148;
+  --emerald-50:  #ECFDF5;
+  --emerald-100: #D1FAE5;
+  --emerald-200: #A7F3D0;
+  --emerald-600: #047857;   /* success — 4.84:1 */
+  --emerald-700: #065F46;
 
-  --amber-50:  #FEF4E4;
-  --amber-100: #FCE9C4;
-  --amber-200: #F6D79F;
+  --amber-50:  #FFFBEB;
+  --amber-100: #FEF3C7;
+  --amber-200: #FDE68A;
   --amber-600: #B45309;   /* warning — 5.02:1 */
   --amber-700: #92400E;
 
-  --rose-50:  #FDECEF;
-  --rose-100: #FBD8DF;
-  --rose-200: #F6B5C1;
+  --rose-50:  #FFF1F2;
+  --rose-100: #FFE4E6;
+  --rose-200: #FECDD3;
   --rose-600: #BE123C;   /* danger — 6.29:1 */
   --rose-700: #9F0F32;
 
@@ -91,11 +90,11 @@
   --indigo-100: #E0E7FF;
   --indigo-200: #C7D2FE;
   --indigo-600: #4F46E5;
-  --indigo-700: #4338CA;   /* info / eccentric badge — 7.90:1 */
+  --indigo-700: #4338CA;   /* info — 7.90:1 */
 
   /* Blue: custom-word badge only */
-  --blue-50:  #E7F1FB;
-  --blue-600: #1D4ED8;
+  --blue-50:  #F0F9FF;
+  --blue-600: #0369A1;
 
   /* ---- Dark-theme primitives (MVP does not ship; see section 14) ---- */
   --dk-bg:            #0B1016;
@@ -150,7 +149,7 @@
   --color-border-strong: var(--gray-575);
 
   /* Accent */
-  --color-accent:        var(--teal-600);
+  --color-accent:        var(--teal-650);
   --color-accent-hover:  var(--teal-700);
   --color-accent-active: var(--teal-800);
   --color-accent-fg:     #FFFFFF;   /* allowed exception: pure white */
@@ -274,10 +273,10 @@
    * 6. RADIUS — card capped at 14px, modal at 18px.
    *    Above 24px reads as generated rounding.
    * -------------------------------------------------------------------- */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   18px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
   --radius-pill: 9999px;
 
   /* ----------------------------------------------------------------------
@@ -286,9 +285,9 @@
    * -------------------------------------------------------------------- */
   --elev-flat:    none;
   --elev-ring:    0 0 0 1px var(--color-border);
-  --elev-raised:  0 1px 2px rgba(20,26,34,0.04), 0 2px 6px rgba(20,26,34,0.05);
-  --elev-overlay: 0 8px 24px rgba(20,26,34,0.10), 0 2px 6px rgba(20,26,34,0.06);
-  --elev-focus:   0 0 0 3px rgba(14,116,144,0.35);
+  --elev-raised:  0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
+  --elev-overlay: 0 20px 40px -12px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.08);
+  --elev-focus:   0 0 0 3px rgba(4,120,87,0.30);
 
   /* ----------------------------------------------------------------------
    * 8. MOTION — convergence value 150ms.
@@ -402,8 +401,8 @@
   /* ---- Badges ---- */
   --badge-core-bg:      var(--color-accent-soft);
   --badge-core-fg:      var(--color-accent-soft-fg);
-  --badge-eccentric-bg: var(--color-info-soft);
-  --badge-eccentric-fg: var(--color-info);
+  --badge-eccentric-bg: var(--rose-50);
+  --badge-eccentric-fg: var(--rose-600);
   --badge-custom-bg:    var(--blue-50);
   --badge-custom-fg:    var(--blue-600);
   --badge-basic-bg:     var(--color-surface-warm);
@@ -419,7 +418,7 @@
   --freq-width-desktop: 96px;
 
   /* ---- Modal / Drawer ---- */
-  --modal-scrim:     rgba(20,26,34,0.44);
+  --modal-scrim:     rgba(15,23,42,0.45);
   --modal-bg:        var(--color-surface);
   --modal-radius:    var(--radius-xl);
   --modal-padding:   var(--space-6);

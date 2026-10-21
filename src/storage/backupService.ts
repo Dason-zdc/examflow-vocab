@@ -70,7 +70,8 @@ export async function exportBackup(db: ExamFlowDB): Promise<BackupFile> {
     db.settings.get(SETTINGS_KEY),
   ]);
 
-  const { id: _id, ...settingsValue } = settings ?? ({} as { id?: string } & Settings);
+  // AI Key 属于本机凭证，不进备份文件（PRD 8.3）
+  const { id: _id, updatedAt: _settingsVersion, aiApiKey: _aiKey, ...settingsValue } = settings ?? ({} as { id?: string; updatedAt?: number; aiApiKey?: string } & Settings);
 
   return {
     format: BACKUP_FORMAT,
@@ -79,9 +80,9 @@ export async function exportBackup(db: ExamFlowDB): Promise<BackupFile> {
     schemaVersion: SCHEMA_VERSION,
     settings: settings ? (settingsValue as Settings) : null,
     cards: cards.map((row) => cardToBackup(fromCardRow(row))),
-    reviewLogs: reviewLogs.map(reviewLogToBackup),
+    reviewLogs: reviewLogs.map(({ updatedAt: _v, ...log }) => reviewLogToBackup(log)),
     userWordMeta,
-    customWords,
+    customWords: customWords.map(({ updatedAt: _v, ...word }) => word),
   };
 }
 

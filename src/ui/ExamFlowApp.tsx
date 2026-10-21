@@ -9,6 +9,7 @@ import { AppHeader } from './AppHeader';
 import { StudyView } from './StudyView';
 import { VocabBookView } from './VocabBookView';
 import { SettingsModal } from './SettingsModal';
+import { DashboardContainer } from './DashboardContainer';
 import { useExamFlow } from './useExamFlow';
 
 /** 应用容器：装配数据编排 hook + Provider + 视图路由。业务在 app/domain 层，这里只组装。 */
@@ -62,7 +63,7 @@ export function ExamFlowApp() {
           prevRevision={prevRevision}
         />
       </StudySessionProvider>
-      <SettingsModal open={flow.settingsOpen} settings={settings} saving={saving} onClose={() => flow.setSettingsOpen(false)} onSave={submitSettings} />
+      <SettingsModal open={flow.settingsOpen} settings={settings} saving={saving} sync={flow.sync} onClose={() => flow.setSettingsOpen(false)} onSave={submitSettings} />
     </Shell>
   );
 }
@@ -132,11 +133,13 @@ function Chrome({ flow, db, settings, dictionary, searchQuery, onSearch, prevRev
         daysToExam={daysLeft}
         progress={progress}
         view={flow.view}
+        exams={flow.availableExams}
         searchQuery={searchQuery}
         onSearch={onSearch}
         onView={flow.setView}
         onSwitchExam={(exam: ExamCode) => void flow.switchExam(exam)}
         onOpenSettings={() => flow.setSettingsOpen(true)}
+        onOpenDashboard={() => flow.setDashboardOpen(true)}
       />
       <main id="main" className="mx-auto max-w-container px-3 pb-20 pt-4 md:px-6 md:pb-10">
         {!settings.examDate ? (
@@ -163,6 +166,17 @@ function Chrome({ flow, db, settings, dictionary, searchQuery, onSearch, prevRev
           <VocabBookView db={db} exam={settings.exam} dictionary={dictionary} onReset={flow.resetProgress} initialQuery={searchQuery} />
         )}
       </main>
+
+      <DashboardContainer
+        open={flow.dashboardOpen}
+        db={db}
+        dictionary={dictionary}
+        settings={settings}
+        scheduler={scheduler}
+        now={flow.now}
+        onClose={() => flow.setDashboardOpen(false)}
+        onApplied={flow.refreshPlan}
+      />
     </>
   );
 }
