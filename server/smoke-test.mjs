@@ -14,6 +14,7 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PORT = Number(process.env.SMOKE_PORT ?? 8799);
 const BASE = `http://localhost:${PORT}/api/v1`;
+const ORIGIN = `http://localhost:${PORT}`;
 const DB_PATH = path.join(os.tmpdir(), `examflow-smoke-${Date.now()}.db`);
 const USERNAME = `smoke_${Date.now().toString(36)}`;
 const PASSWORD = 'password123';
@@ -163,4 +164,19 @@ test('数据包接口返回已发布的 IELTS 清单', async () => {
   assert.equal(manifest.status, 200);
   assert.equal(manifest.body.exam, 'IELTS');
   assert.ok(manifest.body.wordCount > 0);
+});
+
+test('静态资源缓存策略：/packs/ 不缓存，其它资源保持长缓存', async () => {
+  // 数据包文件名不带版本号（chunk-N.json），一旦被缓存就会与新一代 manifest 串代：
+  // sha256 是上一代的、校验反而通过，加载期才炸 PackFormatError。服务端必须禁止留副本。
+  for (const file of ['manifest.json', 'chunk-0.json']) {
+    const res = await fetch(`${ORIGIN}/packs/IELTS/${file}`);
+    assert.equal(res.status, 200, file);
+    assert.match(res.headers.get('cache-control') ?? '', /no-store/, `${file} 必须 no-store`);
+  }
+
+  // 非数据包资源的策略不得被这次改动波及
+  const icon = await fetch(`${ORIGIN}/favicon.svg`);
+  assert.equal(icon.status, 200);
+  assert.match(icon.headers.get('cache-control') ?? '', /max-age=3600/);
 });

@@ -64,10 +64,27 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
+/** 数据包文件（/packs/<考试>/…）：chunk-N.json 不带版本号，是版本串代的源头 */
+function isPackFile(filePath) {
+  return filePath.split(path.sep).includes('packs');
+}
+
+/**
+ * 缓存策略：
+ *  - 数据包：文件名不带版本号，可缓存的旧 chunk 会与新一代 manifest 串代
+ *    （sha256 也是上一代的，校验反而通过），加载期直接撞 PackFormatError，故 no-store；
+ *  - HTML：应用外壳，需回源校验；
+ *  - 其余静态资源（带哈希或不会变）：保持长缓存。
+ */
+function cacheControlFor(filePath, ext) {
+  if (isPackFile(filePath)) return 'no-store';
+  if (ext === '.html') return 'no-cache';
+  return 'public, max-age=3600';
+}
+
 function serveFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const type = MIME[ext] ?? 'application/octet-stream';
-  const noCache = ext === '.html';
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -76,7 +93,7 @@ function serveFile(res, filePath) {
     }
     res.writeHead(200, {
       'Content-Type': type,
-      'Cache-Control': noCache ? 'no-cache' : 'public, max-age=3600',
+      'Cache-Control': cacheControlFor(filePath, ext),
     });
     res.end(data);
   });
