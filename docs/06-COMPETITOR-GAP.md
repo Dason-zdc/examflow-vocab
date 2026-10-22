@@ -22,11 +22,11 @@
 ## 2. 竞品卡片的信息架构（自上而下）
 
 ```
-┌ 词头行    cite   UK /sʌɪt/ 🔊   US /sʌɪt/ 🔊        ☆收藏   快捷键 C
+┌ 词头行    cite   UK /sʌɪt/ （发音）   US /sʌɪt/ （发音）        ☆收藏   快捷键 C
 ├ Tab 行    [常见单词] [柯林斯词典]                          拼写 S
 ├ 释义行    v. 提及，举例；引用，引进，传唤；嘉奖
 ├ 例句      The lawyer cited a previous case to support his argument.
-│           律师引用了以前的案例来支持他的论点。                    🔊
+│           律师引用了以前的案例来支持他的论点。                    （发音）
 ├ 智慧词根  base  cit-    【拉丁】唤起，刺激
 ├ 同源词群  citat- · cit- · -cit                       （收起 R）
 │           excitement  名   ex(完全)+cit(唤起)+ment(结果)=唤起某种→兴奋   ☆
@@ -58,7 +58,7 @@
 │           1. v. 引用、引证；举例
 │           （暂无英文释义）                      ← 空占位直接暴露数据缺口
 │           权重为公开信号合成的估计值（满分 100），不是考试实测计数。
-├ 例句      语料例句 #803443 🔊
+├ 例句      语料例句 #803443 （发音）
 │           Several authors cite the same 1998 study on school size.
 ├ 词根      词形变化: cited / cites / citing                     收起 R
 │           该词暂未收录人工词根，也没有可靠的前后缀拆分。   ← 三分之一词条是这样

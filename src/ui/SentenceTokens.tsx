@@ -31,8 +31,8 @@ export function SentenceTokens({ en, surface = '', onWord, blankTarget = false }
               onWord(token);
             }}
             aria-label={`查询 ${token}`}
-            className={`rounded-sm font-word underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors duration-150 hover:bg-accent-soft hover:text-accent-soft-fg hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-              isTarget ? 'font-emphasize text-fg no-underline' : 'text-fg-2'
+            className={`rounded-sm font-word transition-colors duration-150 hover:bg-accent-soft hover:text-accent-soft-fg hover:underline hover:decoration-dotted hover:decoration-accent hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:underline ${
+              isTarget ? 'font-emphasize text-fg' : 'text-fg-2'
             }`}
           >
             {token}

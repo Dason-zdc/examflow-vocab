@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import type { PackWord } from '../content/packVerifier';
 import { SentenceTokens } from './SentenceTokens';
 import { ICON_SIZE, ICON_STROKE, Volume2 } from './icons';
 import { speak } from './speech';
 import { isCorpusSentence, sentenceSourceLabel, tatoebaUrl } from './sentenceSource';
 
-/** 背面例句区（对齐原型）：展示该词全部例句，当前义项优先；每句可朗读、可点词查询。 */
+/** 背面例句区（P0-4 降噪）：每句可点词查询、可朗读；第二条起默认折叠，溯源编号收进 tooltip。 */
 export interface CardBackSentencesProps {
   word: PackWord;
   currentSenseId: string;
@@ -13,10 +14,13 @@ export interface CardBackSentencesProps {
 }
 
 export function CardBackSentences({ word, currentSenseId, accent, onWord }: CardBackSentencesProps) {
+  const [expanded, setExpanded] = useState(false);
   const sentences = [...word.sentences].sort(
     (a, b) => Number(b.senseId === currentSenseId) - Number(a.senseId === currentSenseId),
   );
   const hasCorpus = sentences.some((s) => isCorpusSentence(s.provenance));
+  const visible = expanded ? sentences : sentences.slice(0, 1);
+  const hiddenCount = sentences.length - visible.length;
 
   return (
     <section className="rounded-xl border border-line bg-sunken p-4" aria-label="例句">
@@ -27,9 +31,13 @@ export function CardBackSentences({ word, currentSenseId, accent, onWord }: Card
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {sentences.map((sentence, index) => {
+          {visible.map((sentence, index) => {
             const sense = word.senses.find((s) => s.id === sentence.senseId);
             const current = sentence.senseId === currentSenseId;
+            const adapted = sentence.provenance.type === 'ADAPTED' ? sentence.provenance : null;
+            const tip = adapted && adapted.sourceId
+              ? `${sentenceSourceLabel(sentence.provenance)} · ${tatoebaUrl(adapted.sourceId)}`
+              : sentenceSourceLabel(sentence.provenance);
             return (
               <li key={sentence.id} className={index > 0 ? 'border-t border-line-soft pt-3' : ''}>
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
@@ -43,19 +51,9 @@ export function CardBackSentences({ word, currentSenseId, accent, onWord }: Card
                         {sense.pos} {sense.cn}
                       </span>
                     ) : null}
-                    <span className="text-2xs text-meta">
+                    <span className="text-2xs text-meta" title={tip}>
                       {sentenceSourceLabel(sentence.provenance)}
-                      {isCorpusSentence(sentence.provenance) && sentence.provenance.type === 'ADAPTED' && sentence.provenance.sourceId ? (
-                        <a
-                          href={tatoebaUrl(sentence.provenance.sourceId)}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="ml-1 underline decoration-dotted underline-offset-2 hover:text-accent"
-                          title="在 Tatoeba 查看该句对（CC BY 2.0 FR）"
-                        >
-                          #{sentence.provenance.sourceId}
-                        </a>
-                      ) : null}
+                      {adapted && adapted.sourceId ? <span className="ml-1">#{adapted.sourceId}</span> : null}
                     </span>
                   </div>
                   <button
@@ -76,9 +74,21 @@ export function CardBackSentences({ word, currentSenseId, accent, onWord }: Card
           })}
         </ul>
       )}
+
+      {hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-3 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-accent transition-colors duration-150 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          {expanded ? '收起' : `展开其余 ${hiddenCount} 条例句`}
+        </button>
+      ) : null}
+
       {hasCorpus ? (
         <p className="mt-3 border-t border-line-soft pt-2 text-2xs text-meta">
-          例句来自 Tatoeba 语料（CC BY 2.0 FR，真实人工撰写与翻译），点击句号后的编号可溯源。
+          例句来自 Tatoeba 语料（CC BY 2.0 FR，真实人工撰写与翻译），编号可溯源。
         </p>
       ) : null}
     </section>

@@ -60,6 +60,34 @@ export interface Synonym {
   cn: string;
 }
 
+/** P1 · 同源词群中的一个成员（同根词 + 记忆公式） */
+export interface FamilyMember {
+  lemma: string;
+  pos: string;
+  cn: string;
+  /** 记忆公式：只由词根表 / 词缀表中可查到的成分拼接，不做联想编造 */
+  formula: string;
+  source: string;
+}
+
+/** P1 · 同源词群：以词根为轴组织「一次记一串」的学习路径（与形近词的「防错」互补） */
+export interface WordFamily {
+  root: string;
+  rootMeaning: string;
+  origin: string;
+  formula: string;
+  members: FamilyMember[];
+  source: string;
+}
+
+/** P1 · 派生词：INFLECTION = 屈折变化，DERIVATION = 后缀派生（产物必须在词典中存在） */
+export interface Derivative {
+  lemma: string;
+  pos: string;
+  cn: string;
+  kind: 'INFLECTION' | 'DERIVATION';
+}
+
 export interface Word {
   /** 稳定 ID，永不复用，如 'w_address' */
   id: string;
@@ -73,6 +101,10 @@ export interface Word {
   etymology?: Etymology;
   confusables: Confusable[];
   synonyms: Synonym[];
+  /** P1 · 同源词群（v1.5 起，数据包可选字段） */
+  wordFamily?: WordFamily;
+  /** P1 · 派生词（v1.5 起，数据包可选字段） */
+  derivatives?: Derivative[];
   /** 废弃标记，不物理删除 */
   deprecated?: boolean;
 }

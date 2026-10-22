@@ -36,15 +36,17 @@ Word.forms        变形（来自 ECDICT exchange）
 Word.senses       义项数组，见下
 Word.etymology    仅在 wordroot.txt 明确收录该词时生成，否则 null（不臆造词源）
 Word.confusables  形近词，最多 3 个，reason ∈ SPELLING|SOUND|ROOT
-Word.synonyms     本版本为空数组（ECDICT 无可靠同义词源，留待 P1）
+Word.synonyms     近义词，最多 4 条；中文由 ECDICT translation 回填，回填不了即剔除，
+                  库外词带 outOfPack: true（种子见 scripts/build/synonym-seeds.json）
 
 Sense.id          's_' + lemma + '_' + posShort + '_' + slug，稳定
 Sense.pos         词性
-Sense.cn          中文释义（ECDICT translation 解析，最多 3 个义项点）
-Sense.enDef       英文释义（ECDICT definition，WordNet 派生）
+Sense.cn          中文释义（同词性的多行翻译合并成一行，最多 4 个义项点）
+Sense.enDef       逐义项英文释义（ECDICT definition，按词性 + 同词性顺序对齐；对不上留空）
+Sense.sentencePending  该义项暂无可溯源语料例句（不用模板句填充）
 Sense.examStats.IELTS = { senseWeight, tier, kind, sources, isEccentric }
-    senseWeight 为 0~100 的「公开语料近似权重」，非真题统计；kind 恒为 'ESTIMATED'，
-    sources 非空（说明权重由哪些公开信号合成）；不得出现 years / freq / share 等
+    senseWeight 为 0~100 的「公开信号合成权重」，非真题统计；kind 恒为 'ESTIMATED'，
+    sources 非空（说明权重由哪些公开信号合成）；不得出现 years / freq / share / approx 等
     旧字段（本项目无真题语料，禁止编造年份与题号）
 
 ExampleSentence   { id, wordId, senseId, en, zh, surfaceForm, provenance }
@@ -106,12 +108,15 @@ TIER_A_PY = os.path.join(SCRIPT_DIR, "tier_a_sentences.py")
 # 让「全量重建」与「已发布数据包」用语料例句，而不是退回模板句。
 SENTENCE_PICKS_JSON = os.path.join(SCRIPT_DIR, "build", "sentence-picks.json")
 CORPUS_NOTE = "语料例句（Tatoeba 英中句对，CC BY 2.0 FR）"
+# 近义词种子（WordNet 同义集派生）：由 v1.3.0 数据包固化为构建输入。
+# 重建时用 ECDICT 中文回填 + 词频排序做清洗（P0-2），不依赖 wordnet-db。
+SYNONYM_SEEDS_JSON = os.path.join(SCRIPT_DIR, "build", "synonym-seeds.json")
 
 # --------------------------------------------------------------------------
 # 可调阈值（全部集中在此，便于评审与回归）
 # --------------------------------------------------------------------------
 EXAM = "IELTS"
-PACK_VERSION = "1.0.0"
+PACK_VERSION = "1.4.0"
 MIN_APP_VERSION = "1.0.0"
 CHUNK_SIZE = 300                 # 每块词数
 TARGET_WORDS = 2000              # 目标词数
@@ -121,7 +126,8 @@ BASIC_EXCLUDE_FREQ_RANK = 600    # frq 序号 <= 600：极高频基础词，不�
 BASIC_FLAG_FREQ_RANK = 1500      # frq 序号 <= 1500：标记 isBasic = True
 MAX_FREQ_RANK = 15000            # frq 序号 > 15000：过于生僻，不入选
 
-MAX_SENSES = 4                   # 每词最多义项数
+MAX_SENSES = 6                   # 每词最多义项数（按词性合并后通常 1~3）
+MAX_CN_ITEMS = 4                 # 单个词性合并后保留的中文义项点上限
 ECCENTRIC_SHARE_MIN = 0.15       # 熟词僻义：义项占比阈值（PRD §4.2）
 ECCENTRIC_FREQ_MIN = 5           # 熟词僻义：义项近似频次阈值（PRD §4.2）
 ECCENTRIC_WORD_FREQ_RANK = 2000  # 熟词僻义前提：该词本身须是「熟词」（frq <= 2000）
@@ -129,9 +135,13 @@ MAX_ECCENTRIC_PER_WORD = 1       # 每词最多标 1 个僻义义项（PRD §5.5
 MAX_CONFUSABLES = 3              # 每词最多形近词
 CONFUSABLE_MAX_EDIT = 2          # 形近词编辑距离上限
 CONFUSABLE_LCP_ROOT = 5          # 最长公共前缀 >= 5 判定为 ROOT（共享词根）
+MAX_SYNONYMS = 4                 # 每词最多近义词（P0-2）
+SYNONYM_CN_ITEMS = 2             # 近义词中文只取核心 1~2 个义项点
+MAX_SENTENCES_PER_SENSE = 3      # 同一义项最多保留的例句数（合并义项后承接旧句）
 
-# 义项权重：按 ECDICT 中出现顺序递减（首义最重）
-SENSE_WEIGHTS = [0.46, 0.26, 0.16, 0.12]
+# 义项权重：同一词性内按释义顺序递减（首义最重），用于 senseWeight 的位置分量
+SENSE_POS_WEIGHTS = [1.0, 0.55, 0.35, 0.25]
+EXTRA_SENSE_WEIGHT = 0.2
 
 # 选词打分权重
 W_IELTS_TAG = 30
@@ -147,10 +157,9 @@ BANDS = (
 )
 
 FREQ_METHOD_NOTE = (
-    "义项考频为公开词频近似值，不是真题统计值。"
-    "计算方式：取 ECDICT 当代语料库词频序号 frq（1 = 最高频），按 "
-    "freq = clamp(2 + 48 * (1 - ln(frq)/ln(MAX_FREQ_RANK)), 2, 60) 得到词级近似频次，"
-    "再按义项顺序权重 [0.46, 0.26, 0.16, 0.12] 分配到各义项并按 ECDICT tag / 学术词表加权。"
+    "义项权重为公开信号合成的估计值，不是雅思真题出现次数。"
+    "senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，"
+    "各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。"
     "examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，"
     "不编造年份与题号，禁止把估计值伪装成真实统计）。"
 )
@@ -263,11 +272,13 @@ via violate virtual visible vision visual volume voluntary welfare whereas where
 POS_MAP = {
     "n": "n.", "noun": "n.", "pl": "n.",
     "v": "v.", "vt": "v.", "vi": "v.", "aux": "v.", "verb": "v.",
-    "adj": "adj.", "a": "adj.", "s": "adj.", "adjs": "adj.",
-    "adv": "adv.", "ad": "adv.",
+    "adj": "adj.", "a": "adj.", "s": "adj.", "j": "adj.", "adjs": "adj.",
+    "adv": "adv.", "ad": "adv.", "r": "adv.",
     "prep": "prep.", "conj": "conj.", "pron": "pron.",
     "num": "num.", "int": "int.", "art": "art.", "abbr": "abbr.",
 }
+# ECDICT definition 列的词性标记形如 n / n. / v / vt / s / a / ad / r（WordNet 简写）
+POS_TOKENS = frozenset(POS_MAP.keys())
 POS_SHORT = {"n.": "n", "v.": "v", "adj.": "adj", "adv.": "adv",
              "prep.": "prep", "conj.": "conj", "pron.": "pron",
              "num.": "num", "int.": "int", "art.": "art", "abbr.": "abbr", "": "x"}
@@ -365,7 +376,15 @@ def normalize_phonetic(p: str) -> str:
 
 
 def norm_pos(raw: str) -> str:
-    return POS_MAP.get((raw or "").strip().lower().rstrip("."), (raw.strip() + ".") if raw.strip() else "")
+    """词性归一：n / n. / N / vt / vi / a / ad / r / s / j 一律收敛到 n./v./adj./adv.。
+
+    ECDICT 的 translation 列多数带点（`vt. 引用`），definition 列多数不带点（`v make reference to`），
+    同一套归一函数必须同时吃两种写法，否则英文释义会整列解析不出来。
+    """
+    p = (raw or "").strip().lower().rstrip(".")
+    if not p:
+        return ""
+    return POS_MAP.get(p, raw.strip().rstrip(".") + ".")
 
 
 def short_pos(pos: str) -> str:
@@ -546,29 +565,45 @@ def load_tier_a() -> dict:
 # ==========================================================================
 # 2. 释义解析
 # ==========================================================================
-LINE_POS_RE = re.compile(r"^\s*([a-zA-Z]+)\.\s*(.+)$")
-DOMAIN_RE = re.compile(r"^\s*\[[^\]]+\]\s*(.+)$")
+# 词性标记：兼容 `n.`（translation 列主流）与 `n`（definition 列主流）
+LINE_POS_RE = re.compile(r"^\s*([A-Za-z]{1,5})\.?\s+(.+)$")
+# 旧版正则（词性必须带点），只用于复算 v1.3.0 的义项 id，见 legacy_sense_layout()
+LEGACY_LINE_POS_RE = re.compile(r"^\s*([a-zA-Z]+)\.\s*(.+)$")
+DOMAIN_RE = re.compile(r"^\s*\[([^\]]+)\]\s*(.+)$")
+
+
+def split_pos_line(line: str):
+    """把 `n 释义` / `n. 释义` / `vt. 释义` 拆成 (pos, gloss)；不是词性行则返回 None。"""
+    m = LINE_POS_RE.match(line or "")
+    if not m:
+        return None
+    token = m.group(1).lower()
+    if token not in POS_TOKENS:
+        return None
+    gloss = m.group(2).strip()
+    if not gloss:
+        return None
+    return norm_pos(token), gloss
 
 
 def parse_translation(tr: str):
-    """ECDICT translation -> [(pos, cn_raw), ...]，按出现顺序去重。"""
+    """ECDICT translation -> [(pos, cn_raw), ...]，按出现顺序去重。
+
+    `[建] 引证, 指引` 这类领域行带的是词典领域标注而不是词性，中文也常与主词性重复
+    （cite 的 `[建]` 行就是「引证」的复述）。它们会产出 pos='' 的义项、拉低界面可读性，
+    因此在 P0-1 统一丢弃，丢弃条数在 build() 日志里给出。
+    """
     groups = []
     seen = set()
     for raw in (tr or "").split("\\n"):
         line = raw.replace("\n", " ").strip()
         if not line:
             continue
-        m = LINE_POS_RE.match(line)
-        if m:
-            pos = norm_pos(m.group(1))
-            gloss = m.group(2).strip()
-        else:
-            m2 = DOMAIN_RE.match(line)
-            if not m2:
-                continue
-            pos = ""
-            gloss = m2.group(1).strip()
-        if not gloss or len(gloss) > 400:
+        hit = split_pos_line(line)
+        if not hit:
+            continue
+        pos, gloss = hit
+        if len(gloss) > 400:
             continue
         key = (pos, gloss)
         if key in seen:
@@ -578,74 +613,199 @@ def parse_translation(tr: str):
     return groups
 
 
+def count_domain_lines(tr: str) -> int:
+    """统计 translation 列里被丢弃的 `[领域]` 行数量（质量报告用）。"""
+    n = 0
+    for raw in (tr or "").split("\\n"):
+        line = raw.replace("\n", " ").strip()
+        if line and not split_pos_line(line) and DOMAIN_RE.match(line):
+            n += 1
+    return n
+
+
 def parse_definition(df: str) -> dict:
-    """ECDICT definition -> {pos: [enDef, ...]}"""
+    """ECDICT definition -> {pos: [enDef, ...]}（n / n. / v / vt / a / ad / r / s 一律兼容）"""
     out = defaultdict(list)
     for raw in (df or "").split("\\n"):
         line = raw.replace("\n", " ").strip()
         if not line:
             continue
-        m = LINE_POS_RE.match(line)
-        if m:
-            out[norm_pos(m.group(1))].append(m.group(2).strip())
+        hit = split_pos_line(line)
+        if hit:
+            pos, gloss = hit
+            out[pos].append(gloss)
     return dict(out)
 
 
-def pick_en_def(defs: dict, pos: str, counter: dict) -> str:
+def merge_translation_groups(groups: list) -> list:
+    """同词性的多行中文合并成一组：[(pos, [gloss, ...]), ...]（保持首次出现顺序）。
+
+    义项粒度按词性收敛：竞品的 `v. 提及，举例；引用，引进，传唤；嘉奖` 也是这样组织的。
+    一行一个义项的旧口径会把同词性的近义复述拆成多张卡，既压不住高度，也让逐义项英释对不齐。
     """
-    按词性取英文释义：只取该词性下的第 k 条（k = 已取用的同词性条数）。
-    取不到就留空 —— 宁可没有英释，也不能把别的词性的释义串到这个义项上。
+    order = []
+    bucket = {}
+    for pos, gloss in groups:
+        if pos not in bucket:
+            bucket[pos] = []
+            order.append(pos)
+        bucket[pos].append(gloss)
+    return [(pos, bucket[pos]) for pos in order]
+
+
+def join_cn(glosses: list, max_items: int = MAX_CN_ITEMS, max_len: int = 60) -> str:
+    """多行中文合并成一行：按逗号切分、去重、取前 max_items 个义项点，用「、」连接。"""
+    items = []
+    for g in glosses:
+        for piece in re.split(r"[,，;；]", g or ""):
+            p = piece.strip(" 。.()（）")
+            if p and p not in items:
+                items.append(p)
+    items = items[:max_items]
+    out = "、".join(items)
+    if len(out) > max_len:
+        cut = out[:max_len]
+        if "、" in cut:
+            cut = cut[:cut.rfind("、")]
+        out = cut
+    return out.strip("、")
+
+
+def assign_en_defs(senses: list, defs: dict) -> list:
+    """逐义项英文释义：按「词性 + 同词性顺序」对齐。
+
+    对不上就留空 —— 宁可没有英释，也不能把别的词性（或别的义项）的释义串到这个义项上。
     """
-    lst = defs.get(pos) or []
-    k = counter.get(pos, 0)
-    counter[pos] = k + 1
-    return lst[k][:200] if k < len(lst) else ""
+    counter = {}
+    for s in senses:
+        pos = s.get("pos", "")
+        lst = defs.get(pos) or []
+        k = counter.get(pos, 0)
+        counter[pos] = k + 1
+        s["enDef"] = lst[k][:200] if k < len(lst) else ""
+    return senses
+
+
+def finish_senses(senses: list) -> list:
+    """补 slug（有英释取英释首个实义词，否则用「词性缩写+序号」），并保证词内唯一。"""
+    used = set()
+    for i, s in enumerate(senses):
+        slug = make_slug(s.get("enDef", ""), i, s.get("pos", ""))
+        base, n = slug, 2
+        while slug in used:
+            slug = "%s%d" % (base, n)
+            n += 1
+        used.add(slug)
+        s["slug"] = slug
+    return senses
 
 
 def build_senses(lemma: str, row: dict, tier_a_entry=None):
     """
-    返回 senses 列表（不含 examStats，examStats 在选词后统一计算）。
-    Tier A 词使用人工撰写的义项（保证与人工例句对齐），其余用 ECDICT 解析结果。
+    返回 senses 列表（不含 examStats / id）。
+
+    - Tier A 词：只用人工义项（与人工例句一一对齐），不叠加 ECDICT 组，避免语义膨胀；
+    - 其余词：按词性合并 ECDICT 中文，一个词性一个义项，英文释义按同词性顺序取。
     """
     defs = parse_definition(row.get("definition", ""))
-    counter = {}
-    senses = []
 
     if tier_a_entry:
-        for i, item in enumerate(tier_a_entry[:MAX_SENSES]):
-            pos_raw = item.get("pos", "") or ""
-            pos = norm_pos(pos_raw.rstrip(".")) or norm_pos(pos_raw)
-            if not pos and pos_raw:
-                pos = POS_MAP.get(pos_raw.lower(), pos_raw)
-            cn = clean_cn(item.get("cn", ""), max_items=4, max_len=60) or clean_cn(item.get("cn", ""))
-            en_def = pick_en_def(defs, pos, counter)
-            senses.append({
-                "pos": pos or "",
-                "cn": cn,
-                "enDef": en_def,
-                "slug": make_slug(en_def, i, pos),
-            })
-        return senses
+        senses = []
+        seen = set()
+        for item in tier_a_entry[:MAX_SENSES]:
+            pos = norm_pos(item.get("pos", "") or "")
+            cn = clean_cn(item.get("cn", ""), max_items=MAX_CN_ITEMS, max_len=60) \
+                or clean_cn(item.get("cn", ""))
+            if not cn:
+                continue
+            key = (pos, cn)
+            if key in seen:
+                continue
+            seen.add(key)
+            senses.append({"pos": pos, "cn": cn})
+        assign_en_defs(senses, defs)
+        return finish_senses(senses)
 
-    groups = parse_translation(row.get("translation", ""))
-    if not groups:
-        return senses
-    used_slugs = set()
-    for i, (pos, gloss) in enumerate(groups[:MAX_SENSES]):
-        en_def = pick_en_def(defs, pos, counter)
-        slug = make_slug(en_def, i, pos)
-        base, n = slug, 2
-        while slug in used_slugs:
-            slug = "%s%d" % (base, n)
+    senses = []
+    for pos, glosses in merge_translation_groups(parse_translation(row.get("translation", "")))[:MAX_SENSES]:
+        cn = join_cn(glosses)
+        if not cn:
+            continue
+        senses.append({"pos": pos, "cn": cn})
+    assign_en_defs(senses, defs)
+    return finish_senses(senses)
+
+
+def legacy_sense_layout(lemma: str, row: dict, tier_a_entry=None) -> list:
+    """复算 v1.3.0 的义项 id 布局：[(sense_id, pos, 同词性序号)]。
+
+    只用于把 `scripts/build/sentence-picks.json` 里的旧 senseId 映射到新义项
+    （P0-1 合并同词性义项后 id 会变），不参与任何内容输出。
+    """
+    defs = defaultdict(list)
+    for raw in (row.get("definition", "") or "").split("\\n"):
+        line = raw.replace("\n", " ").strip()
+        m = LEGACY_LINE_POS_RE.match(line)
+        if m and m.group(1).lower() in POS_TOKENS:
+            defs[norm_pos(m.group(1))].append(m.group(2).strip())
+    counter = {}
+
+    def pick(pos):
+        lst = defs.get(pos) or []
+        k = counter.get(pos, 0)
+        counter[pos] = k + 1
+        return lst[k][:200] if k < len(lst) else ""
+
+    groups = []
+    if tier_a_entry:
+        for item in tier_a_entry[:4]:
+            groups.append((norm_pos(item.get("pos", "") or ""),
+                           clean_cn(item.get("cn", ""), max_items=4, max_len=60)
+                           or clean_cn(item.get("cn", ""))))
+    else:
+        for raw in (row.get("translation", "") or "").split("\\n"):
+            line = raw.replace("\n", " ").strip()
+            if not line:
+                continue
+            m = LEGACY_LINE_POS_RE.match(line)
+            if m:
+                groups.append((norm_pos(m.group(1)), clean_cn(m.group(2).strip())))
+                continue
+            m2 = DOMAIN_RE.match(line)
+            if m2:
+                groups.append(("", clean_cn(m2.group(1).strip())))
+
+    out = []
+    used_ids = set()
+    ordinals = {}
+    for i, (pos, cn) in enumerate(groups[:4]):
+        en = pick(pos)
+        slug = make_slug(en, i, pos)
+        sid = "s_%s_%s_%s" % (slugify_lemma(lemma), short_pos(pos), slug)
+        base, n = sid, 2
+        while sid in used_ids:
+            sid = "%s_%d" % (base, n)
             n += 1
-        used_slugs.add(slug)
-        senses.append({
-            "pos": pos,
-            "cn": clean_cn(gloss),
-            "enDef": en_def,
-            "slug": slug,
-        })
-    return senses
+        used_ids.add(sid)
+        k = ordinals.get(pos, 0)
+        ordinals[pos] = k + 1
+        out.append((sid, pos, k))
+    return out
+
+
+def map_legacy_senses(layout: list, senses: list) -> dict:
+    """旧义项 → 新义项下标：同词性按序号对齐，多出来的旧义项并入该词性最后一个义项。"""
+    by_pos = {}
+    for i, s in enumerate(senses):
+        by_pos.setdefault(s.get("pos", ""), []).append(i)
+    out = defaultdict(list)
+    for sid, pos, k in layout:
+        targets = by_pos.get(pos)
+        if not targets:
+            continue
+        idx = targets[k] if k < len(targets) else targets[-1]
+        out[idx].append(sid)
+    return dict(out)
 
 
 # ==========================================================================
@@ -706,70 +866,98 @@ def select_words(ecdict: dict, awl: set, target: int):
 
 
 # ==========================================================================
-# 4. 考频（公开词频近似值）
+# 4. 义项权重（公开信号合成的估计值，PRD v0.3 契约）
 # ==========================================================================
-def word_freq_approx(cand: dict) -> int:
-    rank = cand["frq"] if cand["frq"] > 0 else cand["bnc"]
+def pos_head(pos: str) -> str:
+    p = (pos or "").strip().lower()
+    for sep in (".", "/", " "):
+        if sep in p:
+            p = p.split(sep)[0]
+    return p
+
+
+def general_freq_component(row: dict):
+    """W_gen：词频序号的对数归一中段值，线性抬升到 0.30~1.0。"""
+    frq = to_int(row.get("frq"), 0)
+    bnc = to_int(row.get("bnc"), 0)
+    rank = frq if frq > 0 else bnc
     if rank <= 0:
-        return 2
+        return 0.30, []
     v = max(0.0, 1.0 - math.log(rank) / math.log(MAX_FREQ_RANK))
-    val = 2 + 48 * v
-    if "ielts" in cand["tags"]:
-        val += 6
-    if cand["awl"]:
-        val += 6
-    if cand["row"].get("oxford") == "1":
-        val += 2
-    return int(round(min(60, max(2, val))))
+    return 0.30 + 0.70 * v, ["ECDICT-frq" if frq > 0 else "ECDICT-bnc"]
 
 
-def attach_exam_stats(senses: list, total_freq: int, word_rank: int) -> None:
+def attach_exam_stats(words: list, ecdict: dict, awl: set) -> dict:
+    """给所有义项写入 examStats.IELTS（两遍：先算 senseWeight，再按全库分位定 tier）。
+
+    合规红线：无真题语料，kind 恒为 'ESTIMATED'、sources 非空、禁止 years/freq/share/approx。
     """
-    熟词僻义判定（无真题语料，按公开词频近似）：
-        1. 非首义（PRD §4.2）
-        2. 该词本身是「熟词」：frq <= ECCENTRIC_WORD_FREQ_RANK
-        3. share >= ECCENTRIC_SHARE_MIN 或 freq >= ECCENTRIC_FREQ_MIN（PRD §4.2）
-        4. 该义项词性与首义不同 —— 真正的「义项跳跃」（如 address n.地址 → v.处理）
-        5. 每词最多 MAX_ECCENTRIC_PER_WORD 个，取频次最高的那个
-    """
-    n = len(senses)
-    if n == 1:
-        weights = [1.0]
-    else:
-        w = SENSE_WEIGHTS[:n]
-        s = sum(w)
-        weights = [x / s for x in w]
-    freqs = [max(1, int(round(total_freq * x))) for x in weights]
-    total = sum(freqs)
-    shares = [f / total for f in freqs]
+    total = 0
+    for w in words:
+        row = ecdict.get(w["lemma"])
+        w_gen, gen_src = general_freq_component(row) if row else (0.0, [])
+        w_awl = 1.0 if w["lemma"] in awl else 0.0
+        collins = to_int((row or {}).get("collins"), 0)
+        oxford = (row or {}).get("oxford", "")
+        w_ox = 1.0 if (collins >= 3 and oxford != "1") else 0.0
 
-    is_common_word = 0 < word_rank <= ECCENTRIC_WORD_FREQ_RANK
-    first_pos = senses[0].get("pos", "")
-    candidates = []
-    for i in range(1, n):
-        if not is_common_word:
-            continue
-        if not (shares[i] >= ECCENTRIC_SHARE_MIN or freqs[i] >= ECCENTRIC_FREQ_MIN):
-            continue
-        pos = senses[i].get("pos", "")
-        if first_pos and pos and pos == first_pos:
-            continue
-        candidates.append((freqs[i], -i, i))
-    flagged = set()
-    if candidates:
-        candidates.sort(reverse=True)
-        flagged = {i for _, _, i in candidates[:MAX_ECCENTRIC_PER_WORD]}
+        senses = w["senses"]
+        weights = []
+        sources_all = []
+        for i, _s in enumerate(senses):
+            w_wn = SENSE_POS_WEIGHTS[i] if i < len(SENSE_POS_WEIGHTS) else EXTRA_SENSE_WEIGHT
+            weights.append(round(100 * (0.25 * w_awl + 0.45 * w_gen + 0.10 * w_ox + 0.20 * w_wn)))
+            src = list(gen_src)
+            if w_awl:
+                src.append("AcademicSeedList")
+            if w_ox:
+                src.append("Collins-star>=3")
+            src.append("ECDICT-sense-order")
+            sources_all.append(src)
 
-    for i, s in enumerate(senses):
-        s["examStats"] = {
-            "IELTS": {
-                "freq": freqs[i],
-                "share": round(shares[i], 4),
-                "isEccentric": i in flagged,
-                "years": [],
-                "approx": True,
+        share_total = sum(weights) or 1
+        shares = [x / share_total for x in weights]
+        frq_rank = to_int((row or {}).get("frq"), 0)
+        is_common_word = 0 < frq_rank <= ECCENTRIC_WORD_FREQ_RANK
+        first_pos = pos_head(senses[0].get("pos", "")) if senses else ""
+        best_ecc = None
+        for i in range(1, len(senses)):
+            if not is_common_word:
+                continue
+            if not (weights[i] >= 60 or shares[i] >= ECCENTRIC_SHARE_MIN):
+                continue
+            if first_pos and pos_head(senses[i].get("pos", "")) == first_pos:
+                continue
+            cand = (weights[i], -i)
+            if best_ecc is None or cand > best_ecc:
+                best_ecc = cand
+
+        for i, s in enumerate(senses):
+            s["examStats"] = {
+                "IELTS": {
+                    "senseWeight": weights[i],
+                    "tier": "PENDING",  # 第二遍按全库分位回填
+                    "kind": "ESTIMATED",
+                    "sources": sources_all[i],
+                    "isEccentric": best_ecc is not None and best_ecc[1] == -i,
+                }
             }
-        }
+            total += 1
+
+    pool = sorted((s["examStats"]["IELTS"]["senseWeight"] for w in words for s in w["senses"]),
+                  reverse=True)
+    n = len(pool)
+    core_cut = pool[max(0, math.ceil(n * 0.30) - 1)] if n else 0
+    adv_cut = pool[max(0, math.ceil(n * 0.70) - 1)] if n else 0
+    tier_count = {"CORE": 0, "ADVANCED": 0, "EXTENDED": 0}
+    for w in words:
+        for s in w["senses"]:
+            st = s["examStats"]["IELTS"]
+            st["tier"] = "CORE" if st["senseWeight"] >= core_cut else (
+                "ADVANCED" if st["senseWeight"] >= adv_cut else "EXTENDED")
+            tier_count[st["tier"]] += 1
+    return {"senses": total, "tierDistribution": tier_count,
+            "coreCut": core_cut, "advancedCut": adv_cut}
 
 
 # ==========================================================================
@@ -811,27 +999,38 @@ def build_sentences(word_id: str, lemma: str, senses: list, row: dict,
     exchange = row.get("exchange", "")
     picks = SENTENCE_PICKS.get(word_id)
     if picks is not None:
-        # 语料模式：只产出可溯源的语料例句；无语料的义项标 sentencePending，不用模板句填充
-        for sense in senses:
-            pick = picks.get(sense["id"])
-            if not pick:
+        # 语料模式：只产出可溯源的语料例句；无语料的义项标 sentencePending，不用模板句填充。
+        # P0-1 把同词性的多个义项合并成一个义项后，旧 senseId 会失效，因此用
+        # legacy_sense_layout() 复算 v1.3.0 的旧 id，把旧例句按「词性 + 序号」搬到新义项上。
+        mapping = map_legacy_senses(legacy_sense_layout(lemma, row, tier_a_entry), senses)
+        for i, sense in enumerate(senses):
+            chosen = []
+            for old_id in mapping.get(i, []):
+                pick = picks.get(old_id)
+                if not pick:
+                    continue
+                if any(c["en"] == pick["en"] for c in chosen):
+                    continue
+                chosen.append(pick)
+            if not chosen:
                 sense["sentencePending"] = True
                 continue
-            seq[0] += 1
-            out.append({
-                "id": "x_%s_%d" % (slugify_lemma(lemma), seq[0]),
-                "wordId": word_id,
-                "senseId": sense["id"],
-                "en": pick["en"],
-                "zh": pick["zh"],
-                "surfaceForm": pick["surface"],
-                "provenance": {
-                    "type": "ADAPTED",
-                    "note": CORPUS_NOTE,
-                    "origin": "TATOEBA",
-                    "sourceId": pick["sourceId"],
-                },
-            })
+            for pick in chosen[:MAX_SENTENCES_PER_SENSE]:
+                seq[0] += 1
+                out.append({
+                    "id": "x_%s_%d" % (slugify_lemma(lemma), seq[0]),
+                    "wordId": word_id,
+                    "senseId": sense["id"],
+                    "en": pick["en"],
+                    "zh": pick["zh"],
+                    "surfaceForm": pick["surface"],
+                    "provenance": {
+                        "type": "ADAPTED",
+                        "note": CORPUS_NOTE,
+                        "origin": "TATOEBA",
+                        "sourceId": pick["sourceId"],
+                    },
+                })
         return out
     for i, sense in enumerate(senses):
         sid = sense["id"]
@@ -934,6 +1133,77 @@ def first_diff_index(a: str, b: str) -> int:
         if a[i] != b[i]:
             return i
     return n - 1 if n else 0
+
+
+# ==========================================================================
+# 6b. 近义词清洗（P0-2）
+# ==========================================================================
+SYNONYM_LEMMA_RE = re.compile(r"^[a-z][a-z'\-]{1,20}$")
+
+
+def load_synonym_seeds() -> dict:
+    """{word_id: [{lemma, pos, cn}, ...]}；文件不存在时返回空 dict（近义词留空）。
+
+    种子来自 WordNet 同义集（`scripts/enrich_pack_synonyms.mjs` 早期产出），已固化为
+    构建输入 —— 重建不再依赖 wordnet-db。清洗（中文回填 / 词频排序 / 剔除）每次都重跑。
+    """
+    if not os.path.exists(SYNONYM_SEEDS_JSON):
+        return {}
+    with open(SYNONYM_SEEDS_JSON, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    return {wid: list(items or []) for wid, items in (raw.get("words") or {}).items()}
+
+
+SYNONYM_SEEDS = load_synonym_seeds()
+
+
+def synonym_cn(lemma: str, pos: str, ecdict: dict) -> str:
+    """从 ECDICT translation 回填近义词中文：优先同词性的释义组，否则取首组核心 1~2 义。"""
+    row = ecdict.get(lemma)
+    if not row:
+        return ""
+    groups = parse_translation(row.get("translation", ""))
+    if not groups:
+        return ""
+    for p, gloss in groups:
+        if p and p == pos:
+            return clean_cn(gloss, max_items=SYNONYM_CN_ITEMS, max_len=20)
+    return clean_cn(groups[0][1], max_items=SYNONYM_CN_ITEMS, max_len=20)
+
+
+def clean_synonyms(word: str, word_pos: str, seeds: list, ecdict: dict, pack_lemmas: set) -> list:
+    """近义词清洗规则（P0-2）：
+
+    1. 词形过滤：只留纯小写单词（去多词短语、缩写、专名形态），去掉自身与重复项；
+    2. 中文回填：种子里没有中文就从 ECDICT translation 取核心 1~2 个义项点，
+       仍然回填不了就**剔除**（不为凑数保留空中文噪音）；
+    3. 排序：与当前义项同词性优先 → ECDICT 词频序号升序（越小越常用）→ 字母序；
+    4. 数量：每词最多 MAX_SYNONYMS 个；
+    5. 库外词保留但标 outOfPack，UI 据此提示「库外词」。
+    """
+    ranked = []
+    seen = set()
+    for item in seeds or []:
+        lemma = (item.get("lemma") or "").strip().lower()
+        if not lemma or lemma == word or lemma in seen:
+            continue
+        if not SYNONYM_LEMMA_RE.match(lemma):
+            continue
+        pos = norm_pos(item.get("pos", "")) if item.get("pos") else ""
+        cn = (item.get("cn") or "").strip() or synonym_cn(lemma, pos, ecdict)
+        if not cn:
+            continue
+        seen.add(lemma)
+        frq = to_int((ecdict.get(lemma) or {}).get("frq"), 0)
+        rank = frq if frq > 0 else 10 ** 9
+        ranked.append(((0 if pos and pos == word_pos else 1, rank, lemma), {
+            "lemma": lemma,
+            "pos": pos,
+            "cn": cn,
+            "outOfPack": lemma not in pack_lemmas,
+        }))
+    ranked.sort(key=lambda pair: pair[0])
+    return [item for _, item in ranked[:MAX_SYNONYMS]]
 
 
 # ==========================================================================
@@ -1066,6 +1336,9 @@ def build(awl_file: str | None) -> dict:
         "sense_total": 0, "sentence_total": 0, "eccentric": 0,
         "with_confusables": 0, "with_etymology": 0, "basic": 0,
         "tier_a_words": len(covered_a),
+        "sense_with_endef": 0, "word_all_endef": 0, "word_any_endef": 0,
+        "synonym_total": 0, "synonym_with_cn": 0, "synonym_out_of_pack": 0,
+        "dropped_domain_lines": 0, "sense_pending": 0,
     }
 
     for idx, cand in enumerate(selected):
@@ -1079,6 +1352,7 @@ def build(awl_file: str | None) -> dict:
         if not raw_senses:
             print("[WARN] %s 无可解析义项，跳过" % w)
             continue
+        stats["dropped_domain_lines"] += count_domain_lines(row.get("translation", ""))
 
         for i, s in enumerate(raw_senses):
             s["id"] = "s_%s_%s_%s" % (lemma_slug, short_pos(s["pos"]), s["slug"])
@@ -1093,9 +1367,10 @@ def build(awl_file: str | None) -> dict:
                 n += 1
             seen.add(s["id"])
 
-        attach_exam_stats(raw_senses, word_freq_approx(cand), cand["frq"])
-
         sentences = build_sentences(word_id, w, raw_senses, row, entry, seq)
+
+        primary_pos = raw_senses[0].get("pos", "") if raw_senses else ""
+        synonyms = clean_synonyms(w, primary_pos, SYNONYM_SEEDS.get(word_id), ecdict, selected_words)
 
         word_obj = {
             "id": word_id,
@@ -1109,13 +1384,21 @@ def build(awl_file: str | None) -> dict:
             "sentences": sentences,
             "etymology": build_etymology(w, root_index),
             "confusables": build_confusables(w, pool_meta, cand_words),
-            "synonyms": [],
+            "synonyms": synonyms,
         }
 
         stats["sense_total"] += len(raw_senses)
         stats["sentence_total"] += len(sentences)
-        stats["eccentric"] += sum(1 for s in raw_senses
-                                  if s["examStats"]["IELTS"]["isEccentric"])
+        with_def = [s for s in raw_senses if (s.get("enDef") or "").strip()]
+        stats["sense_with_endef"] += len(with_def)
+        if len(with_def) == len(raw_senses):
+            stats["word_all_endef"] += 1
+        if with_def:
+            stats["word_any_endef"] += 1
+        stats["sense_pending"] += sum(1 for s in raw_senses if s.get("sentencePending"))
+        stats["synonym_total"] += len(synonyms)
+        stats["synonym_with_cn"] += sum(1 for s in synonyms if s.get("cn"))
+        stats["synonym_out_of_pack"] += sum(1 for s in synonyms if s.get("outOfPack"))
         if word_obj["confusables"]:
             stats["with_confusables"] += 1
         if word_obj["etymology"]:
@@ -1124,7 +1407,14 @@ def build(awl_file: str | None) -> dict:
             stats["basic"] += 1
         words.append(word_obj)
 
-    print("      词条：%d；义项：%d；例句：%d" % (len(words), stats["sense_total"], stats["sentence_total"]))
+    print("[5b/8] 计算义项权重（senseWeight / tier）...")
+    stats["weightStats"] = attach_exam_stats(words, ecdict, awl)
+    stats["eccentric"] = sum(1 for w in words for s in w["senses"]
+                             if s["examStats"]["IELTS"]["isEccentric"])
+
+    print("      词条：%d；义项：%d；例句：%d；全义项英释词：%d（%.1f%%）"
+          % (len(words), stats["sense_total"], stats["sentence_total"],
+             stats["word_all_endef"], 100.0 * stats["word_all_endef"] / max(1, len(words))))
 
     print("[6/8] 构建变形 → 原形映射 ...")
     lemmas = {w["lemma"] for w in words}
@@ -1291,6 +1581,15 @@ def verify(out_dir: str, words=None) -> list:
         if len(w.get("confusables", [])) > MAX_CONFUSABLES:
             errors.append("%s confusables 超过 %d 个" % (w["id"], MAX_CONFUSABLES))
 
+        # P0-2：近义词必须「有中文」或「显式标库外」，两者都没有就是噪音
+        for syn in w.get("synonyms", []):
+            if not syn.get("lemma"):
+                errors.append("%s synonym 缺 lemma" % w["id"])
+            if not (syn.get("cn") or "").strip() and not syn.get("outOfPack"):
+                errors.append("%s synonym %s 既无中文也未标 outOfPack" % (w["id"], syn.get("lemma")))
+        if len(w.get("synonyms", [])) > MAX_SYNONYMS:
+            errors.append("%s synonyms 超过 %d 个" % (w["id"], MAX_SYNONYMS))
+
     # emoji 扫描（P0 质量红线）
     def scan(node, path):
         if isinstance(node, str):
@@ -1320,6 +1619,11 @@ def write_quality_doc(result: dict) -> str:
     conf_cov = 100.0 * st["with_confusables"] / max(1, n)
     ety_cov = 100.0 * st["with_etymology"] / max(1, n)
     tier_a_cov = 100.0 * len(result["tier_a_covered"]) / max(1, len(result["tier_a_words"]))
+    endef_word_all = 100.0 * st["word_all_endef"] / max(1, n)
+    endef_word_any = 100.0 * st["word_any_endef"] / max(1, n)
+    endef_sense = 100.0 * st["sense_with_endef"] / max(1, st["sense_total"])
+    syn_cn = 100.0 * st["synonym_with_cn"] / max(1, st["synonym_total"])
+    syn_words = sum(1 for w in words if w["synonyms"])
 
     samples = [words[i] for i in range(0, n, max(1, n // 10))][:10]
 
@@ -1328,9 +1632,11 @@ def write_quality_doc(result: dict) -> str:
     a("# IELTS 数据包 · 数据质量自检报告")
     a("")
     a("> 由 `scripts/etl_build_pack.py` 自动生成，重新构建时会覆盖。")
-    a("> 生成时间：%s" % result["manifest"]["generatedAt"])
+    a("> 数据包版本：**v%s** · 生成时间：%s" % (result["manifest"]["version"],
+                                            result["manifest"]["generatedAt"]))
     a("> 交付校验：`python scripts/etl_build_pack.py --verify-only` 通过"
-      "（sha256 / bytes / 词条与义项 ID 唯一性 / 例句覆盖 / 形近词约束 / examStats 新Schema）")
+      "（sha256 / bytes / 词条与义项 ID 唯一性 / 例句覆盖 / 形近词约束 / 近义词中文 / examStats 新Schema）")
+    a("> 覆盖率复核：`python scripts/check_pack_coverage.py`")
     a("")
     a("## 1. 总量")
     a("")
@@ -1341,6 +1647,13 @@ def write_quality_doc(result: dict) -> str:
     a("| 每词平均义项数 | %.2f |" % sense_avg)
     a("| 例句总数 | %d |" % st["sentence_total"])
     a("| 例句覆盖率（义项维度） | %.1f%% |" % (100.0 * sent_per_sense))
+    a("| 无例句义项（sentencePending） | %d |" % st["sense_pending"])
+    a("| 有 ≥1 条英释的词 | %d（%.1f%%） |" % (st["word_any_endef"], endef_word_any))
+    a("| **所有义项都有英释的词** | **%d（%.1f%%）** |" % (st["word_all_endef"], endef_word_all))
+    a("| 有英释的义项 | %d（%.1f%%） |" % (st["sense_with_endef"], endef_sense))
+    a("| 近义词总数 | %d（%d 词） |" % (st["synonym_total"], syn_words))
+    a("| 近义词带中文 | %d（%.1f%%） |" % (st["synonym_with_cn"], syn_cn))
+    a("| 近义词库外（outOfPack） | %d |" % st["synonym_out_of_pack"])
     a("| 熟词僻义（isEccentric）义项数 | %d |" % st["eccentric"])
     a("| 有形近词的词条数 | %d（%.1f%%） |" % (st["with_confusables"], conf_cov))
     a("| 有词根说明的词条数 | %d（%.1f%%） |" % (st["with_etymology"], ety_cov))
@@ -1364,13 +1677,19 @@ def write_quality_doc(result: dict) -> str:
     a("| 基础词硬排除 | frq ≤ %d | 极高频基础词不入选 |" % BASIC_EXCLUDE_FREQ_RANK)
     a("| isBasic 标记 | frq ≤ %d | 供 UI 默认过滤 |" % BASIC_FLAG_FREQ_RANK)
     a("| 生僻词上限 | frq ≤ %d | 超过则视为低频生僻，不入选 |" % MAX_FREQ_RANK)
-    a("| 熟词僻义 | 非首义 + 该词 frq ≤ %d（须为熟词）+ (share ≥ %.2f 或 freq ≥ %d) "
+    a("| 义项粒度 | 同词性合并为 1 个义项，每词最多 %d 个 | P0-1：中文一行读完，英释可按序对齐 |"
+      % MAX_SENSES)
+    a("| 英文释义对齐 | 按「词性 + 同词性顺序」一一对应，对不上留空 | **严禁跨词性串释义** |")
+    a("| 熟词僻义 | 非首义 + 该词 frq ≤ %d（须为熟词）+ (senseWeight ≥ 60 或占比 ≥ %.2f) "
       "+ 词性与首义不同 + 每词最多 %d 个 | PRD §4.2 + 无真题语料下的近似约束 |"
-      % (ECCENTRIC_WORD_FREQ_RANK, ECCENTRIC_SHARE_MIN, ECCENTRIC_FREQ_MIN,
-         MAX_ECCENTRIC_PER_WORD))
+      % (ECCENTRIC_WORD_FREQ_RANK, ECCENTRIC_SHARE_MIN, MAX_ECCENTRIC_PER_WORD))
     a("| 形近词 | 编辑距离 ≤ %d，每词最多 %d 个 | PRD §4.2 |"
       % (CONFUSABLE_MAX_EDIT, MAX_CONFUSABLES))
-    a("| 例句 | 每义项 ≥ 1 句，100%% ADAPTED | 无真题原句 |")
+    a("| 近义词 | 中文回填不了即剔除；同词性优先 → ECDICT frq 升序；每词最多 %d 个 | P0-2 |"
+      % MAX_SYNONYMS)
+    a("| 例句 | 每义项 ≥ 1 句或标 sentencePending，100%% ADAPTED | 无真题原句 |")
+    a("| 领域行 | 丢弃 `[建]`/`[计]` 等 `[领域]` 行（本次 %d 行） | 领域标注不是词性，中文与主词性重复 |"
+      % st["dropped_domain_lines"])
     a("")
     a("## 4. 抽查 10 词")
     a("")
@@ -1380,30 +1699,42 @@ def write_quality_doc(result: dict) -> str:
         for s in w["senses"]:
             es = s["examStats"]["IELTS"]
             ecc = " · **熟词僻义**" if es["isEccentric"] else ""
-            a("- `%s` **%s** %s — 近似频次 %d，占比 %.0f%%%s"
-              % (s["id"], s["pos"], s["cn"], es["freq"], es["share"] * 100, ecc))
+            a("- `%s` **%s** %s — 估计权重 %d（%s）%s"
+              % (s["id"], s["pos"], s["cn"], es["senseWeight"], es["tier"], ecc))
             if s.get("enDef"):
                 a("  - 英释：%s" % s["enDef"])
+            if s.get("sentencePending"):
+                a("  - 例句：暂无可溯源语料例句（sentencePending）")
         if w["sentences"]:
             x = w["sentences"][0]
             a("- 例句：`%s`" % x["en"])
             a("  - %s（句中形式：%s；%s）" % (x["zh"], x["surfaceForm"], x["provenance"]["note"]))
+        if w["synonyms"]:
+            a("- 近义词：" + "；".join(
+                "%s %s %s%s" % (s["lemma"], s["pos"], s["cn"], "（库外）" if s.get("outOfPack") else "")
+                for s in w["synonyms"]))
         if w["confusables"]:
             a("- 形近词：" + "；".join(
                 "`%s`(%s) %s" % (c["lemma"], c["reason"], c["tip"]) for c in w["confusables"][:2]))
         a("")
     a("## 5. 已知缺口")
     a("")
-    a("1. **同义词（Word.synonyms）为空数组**：ECDICT 未提供可靠同义词数据，"
-      "为避免臆造，本版本留空，P1 再补。")
-    a("2. **词根（etymology）覆盖率低**：仅在 ECDICT wordroot.txt 明确收录该词时生成，"
+    a("1. **逐义项英释的上限由 ECDICT 决定**：ECDICT `definition` 列对多数词条只保留了前 1~2 个词性的释义"
+      "（后续词性被源数据截断），因此「中文里有、英释里没有」的词性无法同词性对齐。"
+      "本项目遵守「对不上就留空、严禁跨词性串释义」，故该比例停在 %.1f%%（本次 %d 词全部义项有英释）。"
+      "彻底解决需要引入完整 WordNet 数据（P1 数据管线），不是前端能补的。"
+      % (endef_word_all, st["word_all_endef"]))
+    a("2. **近义词来源为 WordNet 同义集的固化快照**：`scripts/build/synonym-seeds.json`（由 v1.3.0 数据包导出），"
+      "重建不依赖 `wordnet-db`；中文由 ECDICT `translation` 回填，回填不了的直接剔除。"
+      "因此近义词数量会随中文可用性波动，宁缺毋滥。")
+    a("3. **词根（etymology）覆盖率低**：仅在 ECDICT wordroot.txt 明确收录该词时生成，"
       "不做推测性词源分析。")
-    a("3. **权重为近似值**：无真题语料，senseWeight 由公开词频信号合成，"
+    a("4. **权重为近似值**：无真题语料，senseWeight 由公开词频信号合成，"
       "examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空；旧字段 freq/share/years/approx "
       "已随 senseWeight 迁移移除，校验器会拒绝其重现。")
-    a("4. **音标未区分英美**：ECDICT phonetic 以英式为主，phoneticUs 留空，"
+    a("5. **音标未区分英美**：ECDICT phonetic 以英式为主，phoneticUs 留空，"
       "UI 不应宣称提供美音音标。")
-    a("5. **形近词 tip 为脚本生成**：基于实际拼写差异与双方释义，非人工润色，"
+    a("6. **形近词 tip 为脚本生成**：基于实际拼写差异与双方释义，非人工润色，"
       "Tier A 词可在后续版本中人工复核。")
     a("")
     path = os.path.join(DOCS_DIR, "DATA-QUALITY.md")
@@ -1430,12 +1761,54 @@ def emit_targets(awl_file: str | None, path: str) -> None:
     print("[OK] 已导出 %d 个目标词到 %s" % (min(TIER_A_SIZE, len(selected)), path))
 
 
+def read_pack_words(pack_dir: str = OUT_DIR) -> list:
+    """读取已发布数据包的全部词条（用于一次性导出构建输入快照）。"""
+    out = []
+    if not os.path.isdir(pack_dir):
+        return out
+    for name in sorted(os.listdir(pack_dir)):
+        if name.startswith("chunk-") and name.endswith(".json"):
+            with open(os.path.join(pack_dir, name), encoding="utf-8") as f:
+                out.extend(json.load(f)["words"])
+    return out
+
+
+def emit_synonym_seeds(path: str) -> None:
+    """把当前数据包里的 synonyms 导出成 `scripts/build/synonym-seeds.json`。
+
+    只在「从旧包迁移」时跑一次：种子必须保留清洗前的原始近义词（含无中文项），
+    否则第二次导出会把上一轮剔除掉的信息永久丢掉。
+    """
+    words = read_pack_words()
+    payload = {
+        "source": "public/packs/%s 已发布 synonyms（WordNet 同义集，清洗前快照）" % EXAM,
+        "note": "由 `python scripts/etl_build_pack.py --emit-synonym-seeds` 生成；"
+                "重建时 etl_build_pack.py 负责中文回填 / 词频排序 / 剔除，不依赖 wordnet-db。",
+        "words": {
+            w["id"]: [{"lemma": s.get("lemma", ""), "pos": s.get("pos", ""), "cn": s.get("cn", "")}
+                      for s in w.get("synonyms", [])]
+            for w in words if w.get("synonyms")
+        },
+    }
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=1)
+    total = sum(len(v) for v in payload["words"].values())
+    print("[OK] 已导出 %d 词 / %d 条近义词种子到 %s" % (len(payload["words"]), total, path))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="构建 ExamFlow Vocab IELTS 数据包")
     ap.add_argument("--awl-file", default=None, help="外部学术词表（AWL）文本路径，覆盖内置种子表")
     ap.add_argument("--emit-targets", default=None, help="仅导出 Tier A 目标词清单到指定路径")
+    ap.add_argument("--emit-synonym-seeds", nargs="?", const=SYNONYM_SEEDS_JSON, default=None,
+                    help="把已发布数据包的 synonyms 导出为构建输入快照（默认 scripts/build/synonym-seeds.json）")
     ap.add_argument("--verify-only", action="store_true", help="仅校验已产出的数据包")
     args = ap.parse_args()
+
+    if args.emit_synonym_seeds:
+        emit_synonym_seeds(args.emit_synonym_seeds)
+        return
 
     if args.verify_only:
         errs = verify(OUT_DIR)

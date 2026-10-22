@@ -1,69 +1,69 @@
 {
  "exam": "IELTS",
- "version": "1.3.0",
+ "version": "1.5.0",
  "minAppVersion": "1.0.0",
- "generatedAt": "2026-10-21T07:00:01.191Z",
- "wordCount": 2000,
+ "generatedAt": "2026-10-21T23:36:26.862221Z",
+ "wordCount": 1999,
  "chunkSize": 300,
  "chunks": [
   {
    "n": 0,
    "file": "chunk-0.json",
    "wordCount": 300,
-   "sha256": "d0d2ee604107a7bc14f47e58aaf22477fc159d608a2b08fc2eac65895b45acf5",
-   "bytes": 438918
+   "sha256": "072d76017a99eb2e8d174bd30619826fbff038e2fb07acc9ca453a623026df40",
+   "bytes": 918134
   },
   {
    "n": 1,
    "file": "chunk-1.json",
    "wordCount": 300,
-   "sha256": "5bcd2c6720f3f8342416acf1197b74c2ea825230556e6f79926eedc198e42ec4",
-   "bytes": 554088
+   "sha256": "6f652f69af1e0cf51ec9c1d284ff8894e0d08b9cae734aec2680ef2747267920",
+   "bytes": 900536
   },
   {
    "n": 2,
    "file": "chunk-2.json",
    "wordCount": 300,
-   "sha256": "0dec8a405ccd79c5da2400a0d9c444842a4f5a7aff03f58770cb7d2d17e5d36a",
-   "bytes": 565926
+   "sha256": "f18ec15fd8128b8df92c6c9b2fc07b67bd2d142e99d1605105f1d1f2dcd21c37",
+   "bytes": 884029
   },
   {
    "n": 3,
    "file": "chunk-3.json",
    "wordCount": 300,
-   "sha256": "b6f84746401d17261a61acede23a8396efa47844671f59ef7ac4b4b02fff0bea",
-   "bytes": 604306
+   "sha256": "66896a7186b2a8193b48f26eba15516111e8f03c00216eb3c4a67055ee25605a",
+   "bytes": 920021
   },
   {
    "n": 4,
    "file": "chunk-4.json",
    "wordCount": 300,
-   "sha256": "97a42a0055585b5dbdda708925254e1ca9967889ef565e69829f5a1cdbdf280a",
-   "bytes": 616178
+   "sha256": "a30446d033703312c6b7855f1e7f04a81566fe15c789ceb4680c2617edb1ea57",
+   "bytes": 985985
   },
   {
    "n": 5,
    "file": "chunk-5.json",
    "wordCount": 300,
-   "sha256": "2a068e1e95c7332fe2850b2ebf8624b710545709411f7e191c6d5c748384b553",
-   "bytes": 489815
+   "sha256": "8c866fd003ce271806a6b26af34363cd4fbc388b03bd81c0153e2a64aa5ef3d8",
+   "bytes": 804989
   },
   {
    "n": 6,
    "file": "chunk-6.json",
-   "wordCount": 200,
-   "sha256": "732f226cd07b4f682641e665da88ebaabbb8b8adb9da2b1cf298f8e134e60072",
-   "bytes": 316692
+   "wordCount": 199,
+   "sha256": "d2214d2d454161b889bc472834da3ba938b72d9a3a2996acb10fa66530878ffa",
+   "bytes": 544943
   }
  ],
  "lemmaMap": {
   "file": "lemma-map.json",
-  "sha256": "fcaefd79693db6f36a7e3934377bdd3d201c57fcf9c981dd4a8c80d5aa1b2172",
+  "sha256": "fb1981c77372f1ff13b3e686d2b7755a89802b86bf03ee18965972f3b5d13076",
   "bytes": 136346,
   "entries": 6631
  },
  "deprecatedWordIds": [],
- "frequencyMethod": "义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources。tier 按全库 senseWeight 分位切分：核心约30% / 进阶约40% / 拓展约30%。",
+ "frequencyMethod": "义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，不编造年份与题号，禁止把估计值伪装成真实统计）。",
  "provenanceNote": "所有例句均为仿真例句（ADAPTED）。不含真题原句，不标注真题年份、题号或出处。",
  "sources": [
   {
@@ -89,9 +89,56 @@
    "url": "scripts/etl_build_pack.py :: ACADEMIC_SEED_WORDS",
    "license": "n/a — 仅排序权重，不作为内容输出",
    "used": "学术向选词加权（近似 Coxhead AWL 取向，可用 --awl-file 覆盖）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
   }
  ],
- "license": "ExamFlow Vocab · IELTS 数据包 v1.1.0\n== 词典数据 ==\n来源：ECDICT (https://github.com/skywind3000/ECDICT)，MIT License，版权归 skywind3000 及贡献者所有。ECDICT 自身汇集 MIT / WordNet (WordNet License) / cdict 等允许商用的开放来源。本数据包仅使用其词条、音标、中英文释义、词频与词形变化字段。\n词形还原补充：ECDICT lemma.en.txt（BNC 语料派生，作者声明可用于研究与教育用途）。\n词根说明：ECDICT wordroot.txt。\n== 例句 ==\n本数据包内所有例句均为仿真例句（provenance.type = ADAPTED），由脚本模板生成或人工撰写，用于演示义项用法。不含、也不声称来自剑桥雅思真题、剑桥大学出版社、British Council、IDP 或任何其他受版权保护的考试材料。例句中的年份、机构、数据均为虚构，仅用于构造语境。\n== 义项权重（合规声明） ==\n本项目没有雅思真题语料，因此不允许、也不存在「在雅思中出现 N 次」这类考频表述。\nexamStats.IELTS.senseWeight 是由公开信号合成的估计值（0~100），kind 恒为 'ESTIMATED'，\n每个义项的 sources 字段列出其权重来源信号。计算公式：\n    senseWeight = 100 x (0.25*W_awl + 0.45*W_gen + 0.10*W_ox + 0.20*W_wn)\n其中 W_awl 为学术词表（近似 Coxhead AWL 取向）命中权重，W_gen 由 ECDICT 当代语料库\n词频序号 frq 映射到 0.30~1.00，W_ox 为牛津 5000 考试向权重，W_wn 为 WordNet 义项\n顺序权重 [0.46, 0.26, 0.16, 0.12] 归一。权重仅用于学习优先级排序，不是真题统计值。\ntier（核心/进阶/拓展）按全库 senseWeight 分位切分，约 30% / 40% / 30%。\n== 不使用的数据 ==\n不使用柯林斯释义（需商业授权）、有道 dictvoice 等非公开接口、kajweb/dict 等来源不明数据集。\n== 商标 ==\nIELTS 是剑桥大学出版社、British Council 与 IDP 的注册商标；本数据包为独立编制的学习材料，未获其授权或背书。",
- "synonymsNote": "近义词由 WordNet 同义集自动匹配（每词最多 4 个，优先词库内常见词），可能存在义项不完全对应，仅作替换参考。",
- "sentencePolicy": "语料例句优先：只收录可溯源的 Tatoeba 英中句对；暂无语料的义项标记 sentencePending，不再用模板句填充"
+ "license": "ExamFlow Vocab · IELTS 数据包 v1.4.0\n== 词典数据 ==\n来源：ECDICT (https://github.com/skywind3000/ECDICT)，MIT License，版权归 skywind3000 及贡献者所有。ECDICT 自身汇集 MIT / WordNet (WordNet License) / cdict 等允许商用的开放来源。本数据包仅使用其词条、音标、中英文释义、词频与词形变化字段。\n词形还原补充：ECDICT lemma.en.txt（BNC 语料派生，作者声明可用于研究与教育用途）。\n词根说明：ECDICT wordroot.txt。\n== 例句 ==\n本数据包内所有例句均为仿真例句（provenance.type = ADAPTED），由脚本模板生成或人工撰写，用于演示义项用法。不含、也不声称来自剑桥雅思真题、剑桥大学出版社、British Council、IDP 或任何其他受版权保护的考试材料。例句中的年份、机构、数据均为虚构，仅用于构造语境。\n== 考频 ==\n义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，不编造年份与题号，禁止把估计值伪装成真实统计）。\n== 不使用的数据 ==\n不使用柯林斯释义（需商业授权）、有道 dictvoice 等非公开接口、kajweb/dict 等来源不明数据集。\n== 商标 ==\nIELTS 是剑桥大学出版社、British Council 与 IDP 的注册商标；本数据包为独立编制的学习材料，未获其授权或背书。",
+ "wordFamilyNote": "同源词群优先依据词源关系判定：来源为 Wiktionary（CC BY-SA 3.0，https://en.wiktionary.org），按「来源语言+来源词/原始词根」分组；无词源数据时退回词根表（ECDICT wordroot + 手工校订）的词素边界匹配，并从 ECDICT 召回，按常用度排序取前 8 个。记忆公式只使用词根表与词缀表中可查到的成分，不做联想编造。"
 }

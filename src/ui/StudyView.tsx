@@ -223,6 +223,17 @@ export function StudyView({
               onToggleConfusables={() => setConfusablesOpen((v) => !v)}
               onOpenWord={(lemma) => setPreview({ lemma, word: dictionary.lookup(lemma) ?? null })}
               onLookupWord={(surface) => setLookup({ surface, word: dictionary.lookup(surface) ?? null, sentence: view.sentences[0]?.en })}
+              onAddWord={async (lemma, cn) => {
+                const hit = dictionary.lookup(lemma);
+                if (hit) {
+                  await setStarred(db, hit.id, true);
+                  return;
+                }
+                await addCustomWord(db, { lemma, phonetic: '', cn }, settings.exam);
+              }}
+              starred={starred}
+              onToggleStar={() => void setStarred(db, view.word.id, !starred)}
+              onPlay={(accent) => speak(view.word.lemma, accent)}
               onOpenSpell={() => setSpellOpen(true)}
               onRevise={(r) => session.revise(r)}
               onCommitNext={() => void advance()}

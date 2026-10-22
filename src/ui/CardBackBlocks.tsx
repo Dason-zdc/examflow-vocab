@@ -98,7 +98,7 @@ export function NetworkBlock({
               <span className="text-xs text-meta">该词暂无高危形近词</span>
             ) : (
               confusables.map((c) => (
-                <div key={c.lemma} className="rounded-lg border border-warning-soft bg-warning-soft p-2 text-xs">
+                <div key={c.lemma} className="rounded-lg border border-line bg-sunken p-2 text-xs">
                   <button
                     type="button"
                     onClick={() => onOpenWord(c.lemma)}
@@ -107,7 +107,7 @@ export function NetworkBlock({
                     {c.lemma}
                   </button>
                   {c.phonetic ? <span className="ml-1 font-word text-meta">{c.phonetic}</span> : null}
-                  <div className="mt-0.5 text-warning">{c.tip}</div>
+                  <div className="mt-0.5 text-muted">{c.tip}</div>
                 </div>
               ))
             )}
@@ -140,7 +140,18 @@ export function NetworkBlock({
   );
 }
 
-export function ExamTipBlock({ tip, note, onSave }: { tip: ExamTip | null; note: string; onSave: (note: string) => void }) {
+export function ExamTipBlock({
+  tip,
+  note,
+  official,
+  onSave,
+}: {
+  tip: ExamTip | null;
+  note: string;
+  /** P2-2 官方笔记：由形近辨析 + 词族提示自动生成（不做社区型「精选笔记」） */
+  official?: string[];
+  onSave: (note: string) => void;
+}) {
   const [draft, setDraft] = useState(note);
   const [editing, setEditing] = useState(false);
   useEffect(() => setDraft(note), [note]);
@@ -167,9 +178,18 @@ export function ExamTipBlock({ tip, note, onSave }: { tip: ExamTip | null; note:
         </div>
       ) : null}
 
+      {official && official.length > 0 ? (
+        <ul className="mt-2 flex flex-col gap-1 rounded-lg border border-line bg-sunken p-2.5 text-xs leading-body text-muted">
+          <li className="text-2xs font-emphasize text-meta">[官方笔记] 由形近辨析与词族自动生成</li>
+          {official.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+
       {note && !editing ? (
-        <div className="mt-2 whitespace-pre-line rounded-lg border border-warning-soft bg-warning-soft p-2.5 text-sm text-warning">
-          <strong className="mr-1">[我的笔记]</strong>
+        <div className="mt-2 whitespace-pre-line rounded-lg border border-line bg-sunken p-2.5 text-sm text-fg-2">
+          <strong className="mr-1 text-fg">[我的笔记]</strong>
           {note}
         </div>
       ) : null}
