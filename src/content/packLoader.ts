@@ -45,14 +45,24 @@ function defaultBase(): string {
   return base.endsWith('/') ? base : `${base}/`;
 }
 
-async function defaultFetchJson(url: string): Promise<unknown> {
-  const res = await fetch(url);
+/**
+ * 数据包请求一律绕过 HTTP 缓存。
+ *
+ * 原因：chunk 文件名不带版本号（chunk-0.json），而生产静态服务对 .json 下发
+ * `Cache-Control: public, max-age=3600`（server.js 的 serveFile）。版本升级后，
+ * 浏览器里残留的上一代 manifest + chunk 会自相一致（sha256 也是上一代的），
+ * 于是 sha256 校验通过、形状断言才炸出 `chunk.version=1.4.0 与 manifest 的 1.5.0 不一致`。
+ * `cache: 'reload'` 强制回源，代价只是每次加载多一次网络；离线场景本就靠
+ * IndexedDB 兜底（见 loadFromCache），不受影响。
+ */
+export async function fetchPackJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { cache: 'reload' });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
   return res.json();
 }
 
-async function defaultFetchBytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url);
+export async function fetchPackBytes(url: string): Promise<Uint8Array> {
+  const res = await fetch(url, { cache: 'reload' });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
   return new Uint8Array(await res.arrayBuffer());
 }
@@ -118,8 +128,8 @@ async function loadFromCache(db: ExamFlowDB, exam: ExamCode): Promise<LoadedPack
 
 export async function loadPack(options: LoadPackOptions): Promise<LoadedPack> {
   const { exam, db, onProgress } = options;
-  const fetchJson = options.fetchJson ?? defaultFetchJson;
-  const fetchBytes = options.fetchBytes ?? defaultFetchBytes;
+  const fetchJson = options.fetchJson ?? fetchPackJson;
+  const fetchBytes = options.fetchBytes ?? fetchPackBytes;
   const base = defaultBase();
 
   let manifest: PackManifest;

@@ -363,7 +363,7 @@ def phase_desktop(page, base: str) -> None:
         card = page.locator('article[aria-label="学习卡片"]')
         card.get_by_role("button", name="看答案").click()
         expect(page.locator('article[aria-label="学习卡片答案"]')).to_be_visible(timeout=10000)
-        expect(page.get_by_text("本次评分：")).to_be_visible()
+        expect(page.get_by_text("本次评分")).to_be_visible()
         reveal_ok = True
         page.screenshot(path=str(OUT / "03-desktop-revealed.png"))
         m3_details["reveal"] = "看答案点击后 CardBack（学习卡片答案）渲染成功"

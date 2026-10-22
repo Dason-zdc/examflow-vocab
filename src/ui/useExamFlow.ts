@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ExamCode, Settings } from '../domain/types';
 import { openDatabase, requestPersistentStorage, type ExamFlowDB } from '../storage/db';
-import { loadPack, type LoadedPack } from '../content/packLoader';
+import { loadPackWithRecovery, type LoadedPack } from '../content/packRecovery';
 import { PackDictionary } from '../content/dictionary';
 import { useSettings, useCoverage, useCustomWords, type CoverageStats } from '../app/queries';
 import { customWordToPackWord } from '../content/customWord';
@@ -108,7 +108,8 @@ export function useExamFlow(): ExamFlowController {
     setPackError(null);
     void (async () => {
       try {
-        const loaded = await loadPack({ exam, db });
+        // 用带自愈的入口：缓存中毒（版本串代）时清缓存并只重载一次，而不是把用户卡死在报错上
+        const loaded = await loadPackWithRecovery({ exam, db });
         if (cancelled) return;
         setPack(loaded);
         const dict = new PackDictionary(loaded.words, loaded.lemmaMap);
