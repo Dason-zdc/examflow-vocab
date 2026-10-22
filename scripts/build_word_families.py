@@ -985,6 +985,9 @@ def main() -> int:
         manifest = json.load(f)
     for path, chunk in chunks:
         if not dry:
+            # 必须与 manifest 同步升版本：packVerifier.assertChunkShape 会校验
+            # chunk.version === manifest.version，不一致时加载期直接抛 PackFormatError。
+            chunk["version"] = NEXT_VERSION
             buf = json.dumps(chunk, ensure_ascii=False).encode("utf-8")
             with open(path, "wb") as f:
                 f.write(buf)

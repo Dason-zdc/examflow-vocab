@@ -2,7 +2,7 @@
  "exam": "IELTS",
  "version": "1.5.0",
  "minAppVersion": "1.0.0",
- "generatedAt": "2026-10-21T23:36:26.862221Z",
+ "generatedAt": "2026-10-22T03:14:33.795536Z",
  "wordCount": 1999,
  "chunkSize": 300,
  "chunks": [
@@ -10,49 +10,49 @@
    "n": 0,
    "file": "chunk-0.json",
    "wordCount": 300,
-   "sha256": "072d76017a99eb2e8d174bd30619826fbff038e2fb07acc9ca453a623026df40",
+   "sha256": "ecef1532d406ba6ed827455333fe283b6cf7440c019e3651aecd29757262b6e6",
    "bytes": 918134
   },
   {
    "n": 1,
    "file": "chunk-1.json",
    "wordCount": 300,
-   "sha256": "6f652f69af1e0cf51ec9c1d284ff8894e0d08b9cae734aec2680ef2747267920",
+   "sha256": "fe50042d7604e5ce59e2bc6d5f1bec7044efa31513bdf828bbf909167840b086",
    "bytes": 900536
   },
   {
    "n": 2,
    "file": "chunk-2.json",
    "wordCount": 300,
-   "sha256": "f18ec15fd8128b8df92c6c9b2fc07b67bd2d142e99d1605105f1d1f2dcd21c37",
+   "sha256": "850afac080a3ed873148fb0d1ad769019ba5af39880322b0cd66696bcac2aef2",
    "bytes": 884029
   },
   {
    "n": 3,
    "file": "chunk-3.json",
    "wordCount": 300,
-   "sha256": "66896a7186b2a8193b48f26eba15516111e8f03c00216eb3c4a67055ee25605a",
+   "sha256": "98e5190ece3c73560d5b289c965271bdeaae5ff2f5400ac1c2a27f060e3679d1",
    "bytes": 920021
   },
   {
    "n": 4,
    "file": "chunk-4.json",
    "wordCount": 300,
-   "sha256": "a30446d033703312c6b7855f1e7f04a81566fe15c789ceb4680c2617edb1ea57",
+   "sha256": "24bbc37bbb48b9c1e4976b75be7d16e7b28466fb8932132893d19269491e27a3",
    "bytes": 985985
   },
   {
    "n": 5,
    "file": "chunk-5.json",
    "wordCount": 300,
-   "sha256": "8c866fd003ce271806a6b26af34363cd4fbc388b03bd81c0153e2a64aa5ef3d8",
+   "sha256": "27113a83288cd921dfa1c0711906ae268d438fd78a28b12fe61124cf43ba5906",
    "bytes": 804989
   },
   {
    "n": 6,
    "file": "chunk-6.json",
    "wordCount": 199,
-   "sha256": "d2214d2d454161b889bc472834da3ba938b72d9a3a2996acb10fa66530878ffa",
+   "sha256": "c95cacf5cb2092598fe33f0f6106a98d27f99214f72c7123793ae00d08d8d874",
    "bytes": 544943
   }
  ],
@@ -89,6 +89,12 @@
    "url": "scripts/etl_build_pack.py :: ACADEMIC_SEED_WORDS",
    "license": "n/a — 仅排序权重，不作为内容输出",
    "used": "学术向选词加权（近似 Coxhead AWL 取向，可用 --awl-file 覆盖）"
+  },
+  {
+   "name": "Wiktionary",
+   "license": "CC BY-SA 3.0",
+   "url": "https://en.wiktionary.org",
+   "usedFor": "词源关系（同源词群判定）"
   },
   {
    "name": "Wiktionary",
