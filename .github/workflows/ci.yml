@@ -1,0 +1,65 @@
+name: ci
+
+# 每次 push / PR 都跑，把「代码能编译、门禁不破、数据包结构没退」变成硬约束。
+# 数据包这一半只做只读校验：不依赖 ECDICT / WordNet / Tatoeba 缓存，
+# 因此 CI 不需要下载 170 MB 的构建输入。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: 前端 · typecheck / 门禁 / 测试 / 构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: TypeScript 严格检查
+        run: npm run typecheck
+
+      - name: 架构门禁（行数 / emoji / 硬编码颜色 / 图标出口 / 事务边界 / 入口）
+        run: npm run check
+
+      - name: 单元与集成测试
+        run: npm test
+
+      - name: 生产构建（含 PWA 预缓存清单）
+        run: npm run build
+
+  pack:
+    name: 数据包 · 结构校验 / 覆盖率下限
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # 下面三条都是只读校验，缺缓存也能跑
+      - name: 数据包交付校验（sha256 / ID 唯一 / 例句 / 词条级同义字段）
+        run: python scripts/etl_build_pack.py --verify-only
+
+      - name: 义项级同义结构校验（五态 / 非本词 / 改写模板 / 冲突理由）
+        run: python scripts/etl_synonyms.py --verify-only
+
+      - name: 覆盖率下限（英文释义 95% / 义项级同义 60% / 同义中文 10%）
+        run: python scripts/check_pack_coverage.py
+
+      - name: 编排器自检（不运行重建，只检查参数与输入清单）
+        run: python scripts/build_pack.py --dry-check --skip-sentences
