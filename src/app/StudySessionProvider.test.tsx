@@ -50,7 +50,6 @@ function packWord(lemma: string, weight: number): PackWord {
       },
     ],
     confusables: [],
-    synonyms: [],
   };
 }
 

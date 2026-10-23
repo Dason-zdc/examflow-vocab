@@ -62,7 +62,6 @@ const pack: LoadedPack = {
         },
       ],
       confusables: [],
-      synonyms: [],
     } as PackWord,
   ],
   lemmaMap: {},

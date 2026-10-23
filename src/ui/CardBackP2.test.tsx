@@ -17,7 +17,6 @@ const word: PackWord = {
   senses: [],
   sentences: [],
   confusables: [],
-  synonyms: [],
 };
 
 describe('P2-1 顶部信息条', () => {

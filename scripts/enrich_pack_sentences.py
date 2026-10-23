@@ -33,12 +33,14 @@ import urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from pack_version import add_version_args, resolve_version
+
 PACK_DIR = os.path.join(ROOT, "public", "packs", "IELTS")
 CACHE = os.path.join(ROOT, "scripts", ".cache", "tatoeba")
 API_CACHE = os.path.join(CACHE, "api")
 PICKS_PATH = os.path.join(ROOT, "scripts", "build", "sentence-picks.json")
 
-NEXT_VERSION = "1.3.0"
+NEXT_VERSION = "1.0.0"   # 兜底值；实际版本由 main() 从 manifest / --version 决定
 CORPUS_NOTE = "语料例句（Tatoeba 英中句对，CC BY 2.0 FR）"
 MAX_SENTENCES_PER_WORD = 3
 MIN_WORDS, MAX_WORDS = 5, 20
@@ -394,12 +396,15 @@ def pick_from_candidates(word, candidates):
 # 主流程
 # ==========================================================================
 def main():
+    global NEXT_VERSION
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--sample", type=int, default=10)
     ap.add_argument("--no-api", action="store_true")
     ap.add_argument("--api-budget", type=int, default=600, help="API 补漏最多查询多少词")
+    add_version_args(ap)
     args = ap.parse_args()
+    NEXT_VERSION = resolve_version(PACK_DIR, args.version, args.bump)
 
     chunks = load_pack()
     all_words = [w for _, c in chunks for w in c["words"]]

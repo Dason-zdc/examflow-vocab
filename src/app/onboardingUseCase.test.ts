@@ -38,7 +38,6 @@ function packWord(lemma: string, weight: number, isBasic = false, exam: 'IELTS' 
     ],
     sentences: [],
     confusables: [],
-    synonyms: [],
   };
 }
 

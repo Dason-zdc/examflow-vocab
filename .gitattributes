@@ -1,0 +1,4 @@
+# 数据包按字节校验 sha256（manifest.chunks[].sha256），任何换行转换都会让校验失败。
+# Windows 上 core.autocrlf=true 时，Git 会在 checkout 把 LF 转成 CRLF，等于改坏数据包，
+# 因此这里显式声明为二进制语义：不做 EOL 转换、不做文本 diff。
+public/packs/** -text

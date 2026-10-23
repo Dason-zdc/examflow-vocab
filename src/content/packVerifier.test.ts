@@ -41,7 +41,6 @@ function goodWord(overrides: Partial<PackWord> = {}): PackWord {
     ],
     etymology: undefined,
     confusables: [],
-    synonyms: [],
     ...overrides,
   } as PackWord;
 }
@@ -157,5 +156,68 @@ describe('packVerifier · sha256', () => {
     const a = await sha256Hex(bytes);
     const b = await sha256Hex(bytes.buffer as ArrayBuffer);
     expect(a).toBe(b);
+  });
+});
+
+describe('packVerifier · 义项级同义替换约束 (US-08)', () => {
+  const group = () => ({
+    synset: 'oewn-02639437-v',
+    gloss: 'be composed of',
+    frame: 'of',
+    candidates: [
+      { lemma: 'comprise', pos: 'v.', status: 'REWRITE' as const, inPack: true, rewrite: 'consist of O → comprise O' },
+    ],
+  });
+
+  function withGroups(groups: unknown): PackWord {
+    const w = goodWord();
+    (w.senses[0] as { synonymGroups?: unknown }).synonymGroups = groups;
+    return w;
+  }
+
+  it('结构合法时通过', () => {
+    expect(() => assertChunkShape(goodChunk([withGroups([group()])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).not.toThrow();
+  });
+
+  it('分组缺 synset 即拒绝：同义关系必须能回溯到义项', () => {
+    const g = group();
+    delete (g as { synset?: string }).synset;
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/synset/);
+  });
+
+  it('分组缺英文释义即拒绝：没有释义的分组没法判断用的是哪个义项', () => {
+    const g = group();
+    delete (g as { gloss?: string }).gloss;
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/gloss/);
+  });
+
+  it('状态不在五态之内即拒绝', () => {
+    const g = group();
+    (g.candidates[0] as { status: string }).status = 'MAYBE';
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/五态/);
+  });
+
+  it('候选是本词即拒绝', () => {
+    const g = group();
+    g.candidates[0]!.lemma = 'test';
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/本词/);
+  });
+
+  it('判为需改写却没有模板即拒绝：可用性承诺必须可执行', () => {
+    const g = group();
+    delete (g.candidates[0] as { rewrite?: string }).rewrite;
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/rewrite/);
+  });
+
+  it('判为搭配不符却没有理由即拒绝', () => {
+    const g = group();
+    (g.candidates[0] as { status: string }).status = 'CONFLICT';
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/note/);
+  });
+
+  it('中文释义含多义分隔符即拒绝：那是词级释义，不是义项级', () => {
+    const g = group();
+    (g.candidates[0] as { cn?: string }).cn = '居住、居住(于)';
+    expect(() => assertChunkShape(goodChunk([withGroups([g])]), { exam: EXAM, version: '1.1.0', chunk: 0 })).toThrow(/义项级/);
   });
 });

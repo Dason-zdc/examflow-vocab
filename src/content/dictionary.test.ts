@@ -22,7 +22,6 @@ function word(lemma: string, cn: string, weight = 50): PackWord {
     ],
     sentences: [],
     confusables: [],
-    synonyms: [],
   };
 }
 

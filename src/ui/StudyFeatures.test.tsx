@@ -59,7 +59,6 @@ const pack: LoadedPack = {
         },
       ],
       confusables: [],
-      synonyms: [],
     } as PackWord,
   ],
   lemmaMap: {},
@@ -140,5 +139,6 @@ describe('学习页新增交互', () => {
     fireEvent.click(within(screen.getByRole('region', { name: '学习卡片答案' })).getByRole('button', { name: /^下一个/ }));
     await waitFor(() => expect(scrollSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' }), { timeout: 5000 });
     scrollSpy.mockRestore();
-  });
+    // 全链路冒烟：整包加载 + 五个弹窗串联，并行跑测试文件时会超过默认 5s
+  }, 20000);
 });

@@ -1,8 +1,8 @@
 {
  "exam": "IELTS",
- "version": "1.5.0",
+ "version": "1.6.0",
  "minAppVersion": "1.0.0",
- "generatedAt": "2026-10-22T03:14:33.795536Z",
+ "generatedAt": "2026-10-23T01:11:46.900955Z",
  "wordCount": 1999,
  "chunkSize": 300,
  "chunks": [
@@ -10,55 +10,55 @@
    "n": 0,
    "file": "chunk-0.json",
    "wordCount": 300,
-   "sha256": "ecef1532d406ba6ed827455333fe283b6cf7440c019e3651aecd29757262b6e6",
-   "bytes": 918134
+   "sha256": "5b9f58f9adc664863ab7a67c1a249f4e5bf7590bb605770ad3fe1f7d260ac4f2",
+   "bytes": 946237
   },
   {
    "n": 1,
    "file": "chunk-1.json",
    "wordCount": 300,
-   "sha256": "fe50042d7604e5ce59e2bc6d5f1bec7044efa31513bdf828bbf909167840b086",
-   "bytes": 900536
+   "sha256": "4f806197da7a2d720f9f0db18a4829cdf6bb6d1d8391997400791c2ed50615e8",
+   "bytes": 939319
   },
   {
    "n": 2,
    "file": "chunk-2.json",
    "wordCount": 300,
-   "sha256": "850afac080a3ed873148fb0d1ad769019ba5af39880322b0cd66696bcac2aef2",
-   "bytes": 884029
+   "sha256": "092b3116d69cf8be53c22a44f22aea0628a820b8eda12a8be091c86e30379810",
+   "bytes": 930771
   },
   {
    "n": 3,
    "file": "chunk-3.json",
    "wordCount": 300,
-   "sha256": "98e5190ece3c73560d5b289c965271bdeaae5ff2f5400ac1c2a27f060e3679d1",
-   "bytes": 920021
+   "sha256": "af0b696beae282d9b5ee35ce7efc466bf970b4a35abb35466ae9f0c0745d8769",
+   "bytes": 982850
   },
   {
    "n": 4,
    "file": "chunk-4.json",
    "wordCount": 300,
-   "sha256": "24bbc37bbb48b9c1e4976b75be7d16e7b28466fb8932132893d19269491e27a3",
-   "bytes": 985985
+   "sha256": "eaeabe11085b028128425a0a7f13c4e9cc560fe7d12e79708184805180fd7a3b",
+   "bytes": 1046312
   },
   {
    "n": 5,
    "file": "chunk-5.json",
    "wordCount": 300,
-   "sha256": "27113a83288cd921dfa1c0711906ae268d438fd78a28b12fe61124cf43ba5906",
-   "bytes": 804989
+   "sha256": "c6091c5c12a094c3f0ace3c3a7aaf2e6cf74797622a2e2b9fab950df6fc44af2",
+   "bytes": 830528
   },
   {
    "n": 6,
    "file": "chunk-6.json",
    "wordCount": 199,
-   "sha256": "c95cacf5cb2092598fe33f0f6106a98d27f99214f72c7123793ae00d08d8d874",
-   "bytes": 544943
+   "sha256": "b564098bdcc4d278fc67d3685b8f76c5247d6f4b68f257760cfbf331ac7becc0",
+   "bytes": 570091
   }
  ],
  "lemmaMap": {
   "file": "lemma-map.json",
-  "sha256": "fb1981c77372f1ff13b3e686d2b7755a89802b86bf03ee18965972f3b5d13076",
+  "sha256": "d4e8216ce60e90563e8228556510684c7fa1160988b866457d622e25548fb9f6",
   "bytes": 136346,
   "entries": 6631
  },
@@ -66,6 +66,13 @@
  "frequencyMethod": "义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，不编造年份与题号，禁止把估计值伪装成真实统计）。",
  "provenanceNote": "所有例句均为仿真例句（ADAPTED）。不含真题原句，不标注真题年份、题号或出处。",
  "sources": [
+  {
+   "name": "Open English WordNet",
+   "version": "2021 (oewn:2021)",
+   "url": "https://github.com/globalwordnet/english-wordnet",
+   "license": "CC BY 4.0",
+   "used": "义项（synset）划分、英文释义、例句、同义集成员、官方子类框架"
+  },
   {
    "name": "ECDICT",
    "url": "https://github.com/skywind3000/ECDICT",
@@ -95,56 +102,10 @@
    "license": "CC BY-SA 3.0",
    "url": "https://en.wiktionary.org",
    "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
-  },
-  {
-   "name": "Wiktionary",
-   "license": "CC BY-SA 3.0",
-   "url": "https://en.wiktionary.org",
-   "usedFor": "词源关系（同源词群判定）"
   }
  ],
- "license": "ExamFlow Vocab · IELTS 数据包 v1.4.0\n== 词典数据 ==\n来源：ECDICT (https://github.com/skywind3000/ECDICT)，MIT License，版权归 skywind3000 及贡献者所有。ECDICT 自身汇集 MIT / WordNet (WordNet License) / cdict 等允许商用的开放来源。本数据包仅使用其词条、音标、中英文释义、词频与词形变化字段。\n词形还原补充：ECDICT lemma.en.txt（BNC 语料派生，作者声明可用于研究与教育用途）。\n词根说明：ECDICT wordroot.txt。\n== 例句 ==\n本数据包内所有例句均为仿真例句（provenance.type = ADAPTED），由脚本模板生成或人工撰写，用于演示义项用法。不含、也不声称来自剑桥雅思真题、剑桥大学出版社、British Council、IDP 或任何其他受版权保护的考试材料。例句中的年份、机构、数据均为虚构，仅用于构造语境。\n== 考频 ==\n义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，不编造年份与题号，禁止把估计值伪装成真实统计）。\n== 不使用的数据 ==\n不使用柯林斯释义（需商业授权）、有道 dictvoice 等非公开接口、kajweb/dict 等来源不明数据集。\n== 商标 ==\nIELTS 是剑桥大学出版社、British Council 与 IDP 的注册商标；本数据包为独立编制的学习材料，未获其授权或背书。",
- "wordFamilyNote": "同源词群优先依据词源关系判定：来源为 Wiktionary（CC BY-SA 3.0，https://en.wiktionary.org），按「来源语言+来源词/原始词根」分组；无词源数据时退回词根表（ECDICT wordroot + 手工校订）的词素边界匹配，并从 ECDICT 召回，按常用度排序取前 8 个。记忆公式只使用词根表与词缀表中可查到的成分，不做联想编造。"
+ "license": "ExamFlow Vocab · IELTS 数据包 v1.6.0\n== 词典数据 ==\n来源：ECDICT (https://github.com/skywind3000/ECDICT)，MIT License，版权归 skywind3000 及贡献者所有。ECDICT 自身汇集 MIT / WordNet (WordNet License) / cdict 等允许商用的开放来源。本数据包仅使用其词条、音标、中英文释义、词频与词形变化字段。\n词形还原补充：ECDICT lemma.en.txt（BNC 语料派生，作者声明可用于研究与教育用途）。\n词根说明：ECDICT wordroot.txt。\n== 例句 ==\n本数据包内所有例句均为仿真例句（provenance.type = ADAPTED），由脚本模板生成或人工撰写，用于演示义项用法。不含、也不声称来自剑桥雅思真题、剑桥大学出版社、British Council、IDP 或任何其他受版权保护的考试材料。例句中的年份、机构、数据均为虚构，仅用于构造语境。\n== 考频 ==\n义项权重为公开信号合成的估计值，不是雅思真题出现次数。senseWeight = 100 x (0.25*学术词表 + 0.45*通用词频 + 0.10*牛津5000向 + 0.20*义项位置权重)，各信号含义见 sense.sources；tier 按全库 senseWeight 分位切分（核心约30% / 进阶约40% / 拓展约30%）。examStats.IELTS.kind 恒为 'ESTIMATED'、sources 非空（本项目无真题语料，不编造年份与题号，禁止把估计值伪装成真实统计）。\n== 不使用的数据 ==\n不使用柯林斯释义（需商业授权）、有道 dictvoice 等非公开接口、kajweb/dict 等来源不明数据集。\n== 商标 ==\nIELTS 是剑桥大学出版社、British Council 与 IDP 的注册商标；本数据包为独立编制的学习材料，未获其授权或背书。",
+ "wordFamilyNote": "同源词群优先依据词源关系判定：来源为 Wiktionary（CC BY-SA 3.0，https://en.wiktionary.org），按「来源语言+来源词/原始词根」分组；无词源数据时退回词根表（ECDICT wordroot + 手工校订）的词素边界匹配，并从 ECDICT 召回，按常用度排序取前 8 个。记忆公式只使用词根表与词缀表中可查到的成分，不做联想编造。",
+ "sentencePolicy": "语料例句优先：只收录可溯源的 Tatoeba 英中句对；暂无语料的义项标记 sentencePending，不再用模板句填充",
+ "synonymsNote": "同义替换按 WordNet 义项（synset）分组：每个分组是该词一个词性下的一个具体义项，携带英文释义与搭配框架；候选按可用性分五态（可替换 / 框架一致 / 需改写 / 搭配不符 / 待验证），需改写的给出替换模板。同义严格等于同义集成员，上下位与类义不计入。"
 }

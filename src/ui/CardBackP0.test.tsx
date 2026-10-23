@@ -36,7 +36,6 @@ function fixture(only: Sense): PackWord {
       { id: 'x3', wordId, senseId: only.id, en: 'The lawyer cited a precedent.', zh: '', surfaceForm: 'cited', provenance: { type: 'ADAPTED', origin: 'TATOEBA', sourceId: '789', note: '' } },
     ],
     confusables: [],
-    synonyms: [],
   };
 }
 

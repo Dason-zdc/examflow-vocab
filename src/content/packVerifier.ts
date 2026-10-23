@@ -89,6 +89,71 @@ export interface PackChunk {
 
 const TIERS: ReadonlySet<string> = new Set(['CORE', 'ADVANCED', 'EXTENDED']);
 
+/** 同义候选五态（数据包 v1.6 起）。UI 与 ETL 共用这一份口径。 */
+const SYNONYM_STATUSES: ReadonlySet<string> = new Set(['DIRECT', 'INFERRED', 'REWRITE', 'CONFLICT', 'UNKNOWN']);
+const MAX_SYNONYM_GROUPS = 3;
+const MAX_SYNONYM_CANDIDATES = 4;
+
+/**
+ * 义项级同义替换的交付约束（US-08）。
+ *
+ * 数据包必须能证明「这条同义关系属于这个义项」：分组要有 synset 与 gloss，
+ * 候选不能是本词，需改写的必须有模板，搭配不符的必须有理由。
+ * 这些约束拦的正是旧词级并集实现的问题——它给出的候选既说不清属于哪个义项，
+ * 也没有任何可用性标注。
+ */
+function assertSynonymGroups(raw: unknown, where: string, lemma: string): void {
+  if (!Array.isArray(raw)) throw new PackFormatError(`${where}.synonymGroups 不是数组`);
+  if (raw.length > MAX_SYNONYM_GROUPS) {
+    throw new PackFormatError(`${where}.synonymGroups 超过 ${MAX_SYNONYM_GROUPS} 组`);
+  }
+  for (const [gi, group] of raw.entries()) {
+    const gw = `${where}.synonymGroups[${gi}]`;
+    if (typeof group?.synset !== 'string' || group.synset.length === 0) {
+      throw new PackFormatError(`${gw}.synset 缺失（同义关系必须能回溯到义项）`);
+    }
+    if (typeof group.gloss !== 'string' || group.gloss.length === 0) {
+      throw new PackFormatError(`${gw}.gloss 缺失（义项分组必须带释义）`);
+    }
+    if (group.frame !== undefined && typeof group.frame !== 'string') {
+      throw new PackFormatError(`${gw}.frame 必须是字符串`);
+    }
+    if (!Array.isArray(group.candidates) || group.candidates.length === 0) {
+      throw new PackFormatError(`${gw}.candidates 不能为空`);
+    }
+    if (group.candidates.length > MAX_SYNONYM_CANDIDATES) {
+      throw new PackFormatError(`${gw}.candidates 超过 ${MAX_SYNONYM_CANDIDATES} 个`);
+    }
+    const seen = new Set<string>();
+    for (const [ci, cand] of group.candidates.entries()) {
+      const cw = `${gw}.candidates[${ci}]`;
+      if (typeof cand?.lemma !== 'string' || !/^[a-z]{3,14}$/.test(cand.lemma)) {
+        throw new PackFormatError(`${cw}.lemma 非法（只接受 3~14 位小写单词）`);
+      }
+      if (seen.has(cand.lemma)) throw new PackFormatError(`${cw}.lemma 重复`);
+      seen.add(cand.lemma);
+      if (cand.lemma === lemma.toLowerCase()) {
+        throw new PackFormatError(`${cw}.lemma 不能是本词`);
+      }
+      if (typeof cand.pos !== 'string' || cand.pos.length === 0) throw new PackFormatError(`${cw}.pos 缺失`);
+      if (typeof cand.status !== 'string' || !SYNONYM_STATUSES.has(cand.status)) {
+        throw new PackFormatError(`${cw}.status=${String(cand.status)} 不在五态之内`);
+      }
+      if (typeof cand.inPack !== 'boolean') throw new PackFormatError(`${cw}.inPack 必须是布尔值`);
+      if (cand.cn !== undefined && (typeof cand.cn !== 'string' || /[、,，;；/]/.test(cand.cn))) {
+        throw new PackFormatError(`${cw}.cn 必须是义项级释义（不得含多义分隔符）`);
+      }
+      // 五态的可用性承诺：说「不能换」必须给理由，说「要改写」必须给模板
+      if (cand.status === 'CONFLICT' && (typeof cand.note !== 'string' || cand.note.length === 0)) {
+        throw new PackFormatError(`${cw} 判为搭配不符但没有 note`);
+      }
+      if (cand.status === 'REWRITE' && (typeof cand.rewrite !== 'string' || cand.rewrite.length === 0)) {
+        throw new PackFormatError(`${cw} 判为需改写但没有 rewrite 模板`);
+      }
+    }
+  }
+}
+
 function assertExamStat(stat: unknown, where: string): SenseExamStat {
   if (typeof stat !== 'object' || stat === null) throw new PackFormatError(`${where}.examStats 缺失`);
   const s = stat as Partial<SenseExamStat>;
@@ -132,6 +197,7 @@ export function assertChunkShape(raw: unknown, expected: { exam: string; version
       if (senseIds.has(s.id)) throw new PackFormatError(`${sw}.id 重复`);
       senseIds.add(s.id);
       if (typeof s.pos !== 'string' || typeof s.cn !== 'string') throw new PackFormatError(`${sw}.pos/cn 缺失`);
+      if (s.synonymGroups !== undefined) assertSynonymGroups(s.synonymGroups, sw, w.lemma);
       const stats = s.examStats?.[expected.exam as ExamCode];
       if (stats) {
         withExamStat += 1;

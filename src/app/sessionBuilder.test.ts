@@ -31,7 +31,6 @@ function packWord(lemma: string, weight: number, tier: 'CORE' | 'ADVANCED' | 'EX
     ],
     sentences: [],
     confusables: [],
-    synonyms: [],
   };
 }
 

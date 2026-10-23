@@ -21,7 +21,6 @@ export function makeWord(id: string, senses: Sense[], overrides: Partial<Word> =
     isBasic: false,
     senses,
     confusables: [],
-    synonyms: [],
     ...overrides,
   };
 }

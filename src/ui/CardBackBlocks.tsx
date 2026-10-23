@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Confusable, Etymology, Synonym } from '../domain/types';
+import type { Confusable, Etymology, SynonymGroup } from '../domain/types';
 import type { MorphologySplit } from '../content/morphology';
 import type { ExamTip } from '../app/examTip';
 import { Badge, Button, Kbd } from './primitives';
+import { SynonymGroups } from './SynonymGroups';
 
 /** 背面知识区块：词根、形近词 + 同义替换、考点与笔记（对齐原型的信息层级）。 */
 
@@ -68,18 +69,20 @@ export function NetworkBlock({
   onOpenWord,
 }: {
   confusables: Confusable[];
-  synonyms: Synonym[];
+  synonyms: SynonymGroup[];
   open: boolean;
   onToggle: () => void;
   onOpenWord: (lemma: string) => void;
 }) {
+  const synonymCount = synonyms.reduce((sum, group) => sum + group.candidates.length, 0);
   return (
     <section className="rounded-xl border border-line bg-surface p-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-emphasize text-fg">形近词对比 · 同义替换</span>
           <Badge tone="neutral">{confusables.length} 形近</Badge>
-          <Badge tone="neutral">{synonyms.length} 同义</Badge>
+          <Badge tone="neutral">{synonymCount} 同义</Badge>
+          {synonyms.length > 0 ? <Badge tone="accent">{synonyms.length} 个义项</Badge> : null}
         </div>
         <button
           type="button"
@@ -113,26 +116,11 @@ export function NetworkBlock({
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <h4 className="text-2xs font-emphasize text-meta">同义替换（WordNet）</h4>
-            {synonyms.length === 0 ? (
-              <span className="text-xs text-meta">该词暂无同义替换数据</span>
-            ) : (
-              <div className="flex flex-wrap content-start gap-1.5">
-                {synonyms.map((s) => (
-                  <button
-                    key={`${s.lemma}-${s.pos}`}
-                    type="button"
-                    onClick={() => onOpenWord(s.lemma)}
-                    className="rounded-lg border border-line bg-warm px-2 py-1 text-xs transition-colors duration-150 hover:border-accent hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  >
-                    <strong className="font-word text-fg-2">{s.lemma}</strong>
-                    <span className="ml-1 text-meta">{s.pos}</span>
-                    {s.cn ? <span className="ml-1 text-muted">{s.cn}</span> : null}
-                  </button>
-                ))}
-              </div>
-            )}
-            <p className="mt-auto text-2xs text-meta">自动匹配的近义词，义项可能不完全对应，仅作替换参考。</p>
+            <h4 className="text-2xs font-emphasize text-meta">同义替换（按义项）</h4>
+            <SynonymGroups groups={synonyms} onOpenWord={onOpenWord} />
+            <p className="mt-auto text-2xs leading-snug text-meta">
+              分组按 WordNet 义项，括号内是该义项的英文释义与搭配；徽章表示能否在原句直接替换。
+            </p>
           </div>
         </div>
       ) : null}

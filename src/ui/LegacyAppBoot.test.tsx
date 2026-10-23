@@ -46,7 +46,6 @@ const pack: LoadedPack = {
         },
       ],
       confusables: [],
-      synonyms: [],
       forms: [],
       sentences: [],
     } as PackWord,

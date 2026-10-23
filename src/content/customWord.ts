@@ -35,7 +35,6 @@ export function customWordToPackWord(word: CustomWord, exam: ExamCode): PackWord
       },
     ],
     confusables: [],
-    synonyms: [],
     forms: [],
     sentences: word.sourceSentence
       ? [

@@ -26,6 +26,43 @@ export interface SenseExamStat {
   isEccentric: boolean;
 }
 
+/**
+ * 同义候选的可用性分级（五态，语义见 scripts/etl_synonyms.py）。
+ *
+ * 这是 US-08 的核心契约：同义关系必须挂在义项上，候选必须带「能不能直接用」的判断，
+ * 而不是把同义集成员压成一个词级列表让用户自己猜。
+ */
+export type SynonymStatus = 'DIRECT' | 'INFERRED' | 'REWRITE' | 'CONFLICT' | 'UNKNOWN';
+
+/** 义项级同义候选 */
+export interface SenseSynonym {
+  lemma: string;
+  pos: string;
+  status: SynonymStatus;
+  /**
+   * 该候选的中文释义。只在候选词义唯一时由 ETL 贴上；
+   * 多义合并（如「居住、居住(于)」）一律留空——词级高频释义贴到具体义项上正是错配来源。
+   */
+  cn?: string;
+  /** 判定依据（搭配不符 / 需改写时必填） */
+  note?: string;
+  /** 替换模板，如 `consist of O → comprise O` */
+  rewrite?: string;
+  /** 候选是否在本数据包内（决定能否跳转词条） */
+  inPack: boolean;
+}
+
+/** 一个同义集（synset）= 一个具体义项下的候选集合 */
+export interface SynonymGroup {
+  /** WordNet 义项 id，可回溯证据 */
+  synset: string;
+  /** 该义项的英文释义（WordNet gloss） */
+  gloss: string;
+  /** 该义项的搭配框架，如 `of` / `in`；名词没有介词槽时缺省 */
+  frame?: string;
+  candidates: SenseSynonym[];
+}
+
 export interface Sense {
   id: string;
   pos: string;
@@ -36,6 +73,8 @@ export interface Sense {
   examStats: Partial<Record<ExamCode, SenseExamStat>>;
   /** 该义项暂无可用语料例句（数据包 v1.3 起不再用模板句填充） */
   sentencePending?: boolean;
+  /** 义项级同义替换（数据包 v1.6 起）；缺省表示该义项没有同义集成员 */
+  synonymGroups?: SynonymGroup[];
 }
 
 export interface Etymology {
@@ -52,12 +91,6 @@ export interface Confusable {
   tip: string;
   /** 形近词音标（数据包携带，UI 展示用） */
   phonetic?: string;
-}
-
-export interface Synonym {
-  lemma: string;
-  pos: string;
-  cn: string;
 }
 
 /** P1 · 同源词群中的一个成员（同根词 + 记忆公式） */
@@ -100,7 +133,6 @@ export interface Word {
   senses: Sense[];
   etymology?: Etymology;
   confusables: Confusable[];
-  synonyms: Synonym[];
   /** P1 · 同源词群（v1.5 起，数据包可选字段） */
   wordFamily?: WordFamily;
   /** P1 · 派生词（v1.5 起，数据包可选字段） */

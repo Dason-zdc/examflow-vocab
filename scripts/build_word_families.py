@@ -10,6 +10,7 @@
 用法：
   python scripts/build_word_families.py [--dry]
 """
+import argparse
 import bisect
 import csv
 import glob
@@ -19,6 +20,8 @@ import os
 import re
 import sys
 import unicodedata
+
+from pack_version import add_version_args, resolve_version
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PACK_DIR = os.path.join(SCRIPT_DIR, "..", "public", "packs", "IELTS")
@@ -40,7 +43,7 @@ LANG_NAMES = {
     "ine-pro": "原始印欧语", "fr": "法语", "en": "英语",
 }
 
-NEXT_VERSION = "1.5.0"
+NEXT_VERSION = "1.0.0"   # 兜底值；实际版本由 main() 从 manifest / --version 决定
 MAX_FAMILY = 8
 MAX_DERIV = 6
 MAX_FREQ = 30000           # 生僻词上限：frq 序号大于此值不召回
@@ -729,7 +732,15 @@ def sha256_bytes(buf: bytes) -> str:
 
 
 def main() -> int:
-    dry = "--dry" in sys.argv
+    global NEXT_VERSION
+    ap = argparse.ArgumentParser(description="补词根 / 同源词群 / 派生词（就地 enrich 数据包）")
+    ap.add_argument("--dry", action="store_true", help="只算不写")
+    add_version_args(ap)
+    args = ap.parse_args()
+    dry = args.dry
+    NEXT_VERSION = resolve_version(PACK_DIR, args.version, args.bump)
+    print("[i] 数据包版本 %s%s" % (NEXT_VERSION, "（dry run）" if dry else ""))
+
     print("[1/6] 载入 ECDICT ...")
     ecdict = load_ecdict()
     print("      词条数：%d" % len(ecdict))
@@ -1008,12 +1019,15 @@ def main() -> int:
             "记忆公式只使用词根表与词缀表中可查到的成分，不做联想编造。" % MAX_FAMILY
         )
         manifest.setdefault("sources", [])
-        manifest["sources"].append({
+        entry = {
             "name": "Wiktionary",
             "license": "CC BY-SA 3.0",
             "url": "https://en.wiktionary.org",
             "usedFor": "词源关系（同源词群判定）",
-        })
+        }
+        # 幂等：历史重跑曾把同一条来源追加十几次（v1.6 已去重），这里不再重复写
+        if entry not in manifest["sources"]:
+            manifest["sources"].append(entry)
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest, f, ensure_ascii=False, indent=1)
 

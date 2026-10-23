@@ -150,7 +150,7 @@ export function CardBack({
             />
             <NetworkBlock
               confusables={word.confusables}
-              synonyms={word.synonyms}
+              synonyms={sense.synonymGroups ?? []}
               open={confusablesOpen}
               onToggle={onToggleConfusables}
               onOpenWord={onOpenWord}

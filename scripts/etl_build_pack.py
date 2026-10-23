@@ -36,8 +36,8 @@ Word.forms        变形（来自 ECDICT exchange）
 Word.senses       义项数组，见下
 Word.etymology    仅在 wordroot.txt 明确收录该词时生成，否则 null（不臆造词源）
 Word.confusables  形近词，最多 3 个，reason ∈ SPELLING|SOUND|ROOT
-Word.synonyms     近义词，最多 4 条；中文由 ECDICT translation 回填，回填不了即剔除，
-                  库外词带 outOfPack: true（种子见 scripts/build/synonym-seeds.json）
+Word.synonyms     （v1.6 起不再产出）义项级同义替换由 scripts/etl_synonyms.py 单独写入
+                  Sense.synonymGroups；本脚本重建后必须再跑一次该脚本，口径见 ADR-006
 
 Sense.id          's_' + lemma + '_' + posShort + '_' + slug，稳定
 Sense.pos         词性
@@ -91,6 +91,8 @@ import unicodedata
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from pack_version import add_version_args, resolve_version
+
 # --------------------------------------------------------------------------
 # 路径
 # --------------------------------------------------------------------------
@@ -108,15 +110,13 @@ TIER_A_PY = os.path.join(SCRIPT_DIR, "tier_a_sentences.py")
 # 让「全量重建」与「已发布数据包」用语料例句，而不是退回模板句。
 SENTENCE_PICKS_JSON = os.path.join(SCRIPT_DIR, "build", "sentence-picks.json")
 CORPUS_NOTE = "语料例句（Tatoeba 英中句对，CC BY 2.0 FR）"
-# 近义词种子（WordNet 同义集派生）：由 v1.3.0 数据包固化为构建输入。
-# 重建时用 ECDICT 中文回填 + 词频排序做清洗（P0-2），不依赖 wordnet-db。
-SYNONYM_SEEDS_JSON = os.path.join(SCRIPT_DIR, "build", "synonym-seeds.json")
+# 词级近义词种子已于 v1.6 下线：同义替换改由 scripts/etl_synonyms.py 按义项产出（ADR-006）
 
 # --------------------------------------------------------------------------
 # 可调阈值（全部集中在此，便于评审与回归）
 # --------------------------------------------------------------------------
 EXAM = "IELTS"
-PACK_VERSION = "1.4.0"
+PACK_VERSION = "1.0.0"           # 兜底值；实际版本由 main() 从 manifest / --version 决定
 MIN_APP_VERSION = "1.0.0"
 CHUNK_SIZE = 300                 # 每块词数
 TARGET_WORDS = 2000              # 目标词数
@@ -135,7 +135,6 @@ MAX_ECCENTRIC_PER_WORD = 1       # 每词最多标 1 个僻义义项（PRD §5.5
 MAX_CONFUSABLES = 3              # 每词最多形近词
 CONFUSABLE_MAX_EDIT = 2          # 形近词编辑距离上限
 CONFUSABLE_LCP_ROOT = 5          # 最长公共前缀 >= 5 判定为 ROOT（共享词根）
-MAX_SYNONYMS = 4                 # 每词最多近义词（P0-2）
 SYNONYM_CN_ITEMS = 2             # 近义词中文只取核心 1~2 个义项点
 MAX_SENTENCES_PER_SENSE = 3      # 同一义项最多保留的例句数（合并义项后承接旧句）
 
@@ -488,8 +487,11 @@ def stable_pick(options, key: str):
     return options[hashlib.md5(key.encode("utf-8")).digest()[0] % len(options)]
 
 
+# 与门禁 scripts/check-no-emoji.mjs 的判定集保持一致：
+# 箭头（U+2190–U+21FF）是排版字符，门禁明确放行，数据包里用它写替换模板
+# （`consist of O → comprise O`）；这里若继续拦箭头，两条校验会互相打架。
 EMOJI_RE = re.compile(
-    "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0000FE0F\U00002190-\U000021FF"
+    "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0000FE0F"
     "\U00002B00-\U00002BFF\U0001F1E6-\U0001F1FF]"
 )
 
@@ -979,14 +981,21 @@ def tier_b_sentence(lemma: str, sense: dict, exchange: str) -> dict:
 
 
 def load_sentence_picks() -> dict:
-    """{word_id: {sense_id: pick}}；文件不存在时返回空 dict（退回旧行为）"""
+    """{word_id: {sense_id: [pick, ...]}}；文件不存在时返回空 dict（退回旧行为）。
+
+    一个义项可能有多条例句（同一义项最多 MAX_SENTENCES_PER_SENSE 条），所以值必须是列表：
+    早先实现用 `{sense_id: pick}` 会把同义项的第二条静默覆盖掉。
+    """
     if not os.path.exists(SENTENCE_PICKS_JSON):
         return {}
     with open(SENTENCE_PICKS_JSON, "r", encoding="utf-8") as f:
         raw = json.load(f)
     out = {}
     for wid, picks in (raw.get("words") or {}).items():
-        out[wid] = {p["senseId"]: p for p in picks}
+        bucket = {}
+        for pick in picks:
+            bucket.setdefault(pick["senseId"], []).append(pick)
+        out[wid] = bucket
     return out
 
 
@@ -1005,13 +1014,15 @@ def build_sentences(word_id: str, lemma: str, senses: list, row: dict,
         mapping = map_legacy_senses(legacy_sense_layout(lemma, row, tier_a_entry), senses)
         for i, sense in enumerate(senses):
             chosen = []
-            for old_id in mapping.get(i, []):
-                pick = picks.get(old_id)
-                if not pick:
-                    continue
-                if any(c["en"] == pick["en"] for c in chosen):
-                    continue
-                chosen.append(pick)
+            # picks 可能来自两个 id 空间：历史快照用 v1.3 的旧 id，enrich_pack_sentences.py
+            # 写回的是当前 id。只认旧 id 会让「跑过一次 enrich 之后的重建」静默丢约 250 条例句。
+            for old_id in [*mapping.get(i, []), sense["id"]]:
+                for pick in picks.get(old_id, ()):
+                    if not pick:
+                        continue
+                    if any(c["en"] == pick["en"] for c in chosen):
+                        continue
+                    chosen.append(pick)
             if not chosen:
                 sense["sentencePending"] = True
                 continue
@@ -1141,21 +1152,6 @@ def first_diff_index(a: str, b: str) -> int:
 SYNONYM_LEMMA_RE = re.compile(r"^[a-z][a-z'\-]{1,20}$")
 
 
-def load_synonym_seeds() -> dict:
-    """{word_id: [{lemma, pos, cn}, ...]}；文件不存在时返回空 dict（近义词留空）。
-
-    种子来自 WordNet 同义集（`scripts/enrich_pack_synonyms.mjs` 早期产出），已固化为
-    构建输入 —— 重建不再依赖 wordnet-db。清洗（中文回填 / 词频排序 / 剔除）每次都重跑。
-    """
-    if not os.path.exists(SYNONYM_SEEDS_JSON):
-        return {}
-    with open(SYNONYM_SEEDS_JSON, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-    return {wid: list(items or []) for wid, items in (raw.get("words") or {}).items()}
-
-
-SYNONYM_SEEDS = load_synonym_seeds()
-
 
 def synonym_cn(lemma: str, pos: str, ecdict: dict) -> str:
     """从 ECDICT translation 回填近义词中文：优先同词性的释义组，否则取首组核心 1~2 义。"""
@@ -1170,40 +1166,6 @@ def synonym_cn(lemma: str, pos: str, ecdict: dict) -> str:
             return clean_cn(gloss, max_items=SYNONYM_CN_ITEMS, max_len=20)
     return clean_cn(groups[0][1], max_items=SYNONYM_CN_ITEMS, max_len=20)
 
-
-def clean_synonyms(word: str, word_pos: str, seeds: list, ecdict: dict, pack_lemmas: set) -> list:
-    """近义词清洗规则（P0-2）：
-
-    1. 词形过滤：只留纯小写单词（去多词短语、缩写、专名形态），去掉自身与重复项；
-    2. 中文回填：种子里没有中文就从 ECDICT translation 取核心 1~2 个义项点，
-       仍然回填不了就**剔除**（不为凑数保留空中文噪音）；
-    3. 排序：与当前义项同词性优先 → ECDICT 词频序号升序（越小越常用）→ 字母序；
-    4. 数量：每词最多 MAX_SYNONYMS 个；
-    5. 库外词保留但标 outOfPack，UI 据此提示「库外词」。
-    """
-    ranked = []
-    seen = set()
-    for item in seeds or []:
-        lemma = (item.get("lemma") or "").strip().lower()
-        if not lemma or lemma == word or lemma in seen:
-            continue
-        if not SYNONYM_LEMMA_RE.match(lemma):
-            continue
-        pos = norm_pos(item.get("pos", "")) if item.get("pos") else ""
-        cn = (item.get("cn") or "").strip() or synonym_cn(lemma, pos, ecdict)
-        if not cn:
-            continue
-        seen.add(lemma)
-        frq = to_int((ecdict.get(lemma) or {}).get("frq"), 0)
-        rank = frq if frq > 0 else 10 ** 9
-        ranked.append(((0 if pos and pos == word_pos else 1, rank, lemma), {
-            "lemma": lemma,
-            "pos": pos,
-            "cn": cn,
-            "outOfPack": lemma not in pack_lemmas,
-        }))
-    ranked.sort(key=lambda pair: pair[0])
-    return [item for _, item in ranked[:MAX_SYNONYMS]]
 
 
 # ==========================================================================
@@ -1337,7 +1299,6 @@ def build(awl_file: str | None) -> dict:
         "with_confusables": 0, "with_etymology": 0, "basic": 0,
         "tier_a_words": len(covered_a),
         "sense_with_endef": 0, "word_all_endef": 0, "word_any_endef": 0,
-        "synonym_total": 0, "synonym_with_cn": 0, "synonym_out_of_pack": 0,
         "dropped_domain_lines": 0, "sense_pending": 0,
     }
 
@@ -1369,9 +1330,6 @@ def build(awl_file: str | None) -> dict:
 
         sentences = build_sentences(word_id, w, raw_senses, row, entry, seq)
 
-        primary_pos = raw_senses[0].get("pos", "") if raw_senses else ""
-        synonyms = clean_synonyms(w, primary_pos, SYNONYM_SEEDS.get(word_id), ecdict, selected_words)
-
         word_obj = {
             "id": word_id,
             "lemma": w,
@@ -1384,7 +1342,8 @@ def build(awl_file: str | None) -> dict:
             "sentences": sentences,
             "etymology": build_etymology(w, root_index),
             "confusables": build_confusables(w, pool_meta, cand_words),
-            "synonyms": synonyms,
+            # 不写 synonyms：词级同义词列表是 v1.5 的旧口径（跨义项求和集），
+            # 已由 scripts/etl_synonyms.py 的义项级 synonymGroups 取代（ADR-006）
         }
 
         stats["sense_total"] += len(raw_senses)
@@ -1396,9 +1355,6 @@ def build(awl_file: str | None) -> dict:
         if with_def:
             stats["word_any_endef"] += 1
         stats["sense_pending"] += sum(1 for s in raw_senses if s.get("sentencePending"))
-        stats["synonym_total"] += len(synonyms)
-        stats["synonym_with_cn"] += sum(1 for s in synonyms if s.get("cn"))
-        stats["synonym_out_of_pack"] += sum(1 for s in synonyms if s.get("outOfPack"))
         if word_obj["confusables"]:
             stats["with_confusables"] += 1
         if word_obj["etymology"]:
@@ -1581,14 +1537,9 @@ def verify(out_dir: str, words=None) -> list:
         if len(w.get("confusables", [])) > MAX_CONFUSABLES:
             errors.append("%s confusables 超过 %d 个" % (w["id"], MAX_CONFUSABLES))
 
-        # P0-2：近义词必须「有中文」或「显式标库外」，两者都没有就是噪音
-        for syn in w.get("synonyms", []):
-            if not syn.get("lemma"):
-                errors.append("%s synonym 缺 lemma" % w["id"])
-            if not (syn.get("cn") or "").strip() and not syn.get("outOfPack"):
-                errors.append("%s synonym %s 既无中文也未标 outOfPack" % (w["id"], syn.get("lemma")))
-        if len(w.get("synonyms", [])) > MAX_SYNONYMS:
-            errors.append("%s synonyms 超过 %d 个" % (w["id"], MAX_SYNONYMS))
+        # v1.6：同义关系必须挂在义项上（sense.synonymGroups），词级字段一律拒绝
+        if "synonyms" in w:
+            errors.append("%s 仍带词级 synonyms（v1.6 起改为 sense.synonymGroups）" % w["id"])
 
     # emoji 扫描（P0 质量红线）
     def scan(node, path):
@@ -1622,8 +1573,6 @@ def write_quality_doc(result: dict) -> str:
     endef_word_all = 100.0 * st["word_all_endef"] / max(1, n)
     endef_word_any = 100.0 * st["word_any_endef"] / max(1, n)
     endef_sense = 100.0 * st["sense_with_endef"] / max(1, st["sense_total"])
-    syn_cn = 100.0 * st["synonym_with_cn"] / max(1, st["synonym_total"])
-    syn_words = sum(1 for w in words if w["synonyms"])
 
     samples = [words[i] for i in range(0, n, max(1, n // 10))][:10]
 
@@ -1651,9 +1600,8 @@ def write_quality_doc(result: dict) -> str:
     a("| 有 ≥1 条英释的词 | %d（%.1f%%） |" % (st["word_any_endef"], endef_word_any))
     a("| **所有义项都有英释的词** | **%d（%.1f%%）** |" % (st["word_all_endef"], endef_word_all))
     a("| 有英释的义项 | %d（%.1f%%） |" % (st["sense_with_endef"], endef_sense))
-    a("| 近义词总数 | %d（%d 词） |" % (st["synonym_total"], syn_words))
-    a("| 近义词带中文 | %d（%.1f%%） |" % (st["synonym_with_cn"], syn_cn))
-    a("| 近义词库外（outOfPack） | %d |" % st["synonym_out_of_pack"])
+    a("")
+    a("> 义项级同义替换由 `scripts/etl_synonyms.py` 单独产出，覆盖率见 `docs/DATA-QUALITY-SYNONYMS.md`。")
     a("| 熟词僻义（isEccentric）义项数 | %d |" % st["eccentric"])
     a("| 有形近词的词条数 | %d（%.1f%%） |" % (st["with_confusables"], conf_cov))
     a("| 有词根说明的词条数 | %d（%.1f%%） |" % (st["with_etymology"], ety_cov))
@@ -1685,8 +1633,7 @@ def write_quality_doc(result: dict) -> str:
       % (ECCENTRIC_WORD_FREQ_RANK, ECCENTRIC_SHARE_MIN, MAX_ECCENTRIC_PER_WORD))
     a("| 形近词 | 编辑距离 ≤ %d，每词最多 %d 个 | PRD §4.2 |"
       % (CONFUSABLE_MAX_EDIT, MAX_CONFUSABLES))
-    a("| 近义词 | 中文回填不了即剔除；同词性优先 → ECDICT frq 升序；每词最多 %d 个 | P0-2 |"
-      % MAX_SYNONYMS)
+    a("| 同义替换 | 按 WordNet 义项分组（synset），候选五态分级 | 由 etl_synonyms.py 生成，见 ADR-006 |")
     a("| 例句 | 每义项 ≥ 1 句或标 sentencePending，100%% ADAPTED | 无真题原句 |")
     a("| 领域行 | 丢弃 `[建]`/`[计]` 等 `[领域]` 行（本次 %d 行） | 领域标注不是词性，中文与主词性重复 |"
       % st["dropped_domain_lines"])
@@ -1709,10 +1656,11 @@ def write_quality_doc(result: dict) -> str:
             x = w["sentences"][0]
             a("- 例句：`%s`" % x["en"])
             a("  - %s（句中形式：%s；%s）" % (x["zh"], x["surfaceForm"], x["provenance"]["note"]))
-        if w["synonyms"]:
-            a("- 近义词：" + "；".join(
-                "%s %s %s%s" % (s["lemma"], s["pos"], s["cn"], "（库外）" if s.get("outOfPack") else "")
-                for s in w["synonyms"]))
+        groups = [g for s in w["senses"] for g in (s.get("synonymGroups") or [])]
+        if groups:
+            a("- 同义（按义项）：" + "；".join(
+                "%s → %s" % (g["gloss"][:24], "/".join(c["lemma"] for c in g["candidates"][:3]))
+                for g in groups[:2]))
         if w["confusables"]:
             a("- 形近词：" + "；".join(
                 "`%s`(%s) %s" % (c["lemma"], c["reason"], c["tip"]) for c in w["confusables"][:2]))
@@ -1724,9 +1672,9 @@ def write_quality_doc(result: dict) -> str:
       "本项目遵守「对不上就留空、严禁跨词性串释义」，故该比例停在 %.1f%%（本次 %d 词全部义项有英释）。"
       "彻底解决需要引入完整 WordNet 数据（P1 数据管线），不是前端能补的。"
       % (endef_word_all, st["word_all_endef"]))
-    a("2. **近义词来源为 WordNet 同义集的固化快照**：`scripts/build/synonym-seeds.json`（由 v1.3.0 数据包导出），"
-      "重建不依赖 `wordnet-db`；中文由 ECDICT `translation` 回填，回填不了的直接剔除。"
-      "因此近义词数量会随中文可用性波动，宁缺毋滥。")
+    a("2. **同义替换由独立 ETL 产出**：`scripts/etl_synonyms.py` 直读 Open English WordNet 2021，"
+      "按 synset 分组写入 `sense.synonymGroups`，候选分五态并给改写模板。"
+      "本脚本不再产出词级 `synonyms`，重建数据包后必须再跑一次同义 ETL（ADR-006）。")
     a("3. **词根（etymology）覆盖率低**：仅在 ECDICT wordroot.txt 明确收录该词时生成，"
       "不做推测性词源分析。")
     a("4. **权重为近似值**：无真题语料，senseWeight 由公开词频信号合成，"
@@ -1773,42 +1721,16 @@ def read_pack_words(pack_dir: str = OUT_DIR) -> list:
     return out
 
 
-def emit_synonym_seeds(path: str) -> None:
-    """把当前数据包里的 synonyms 导出成 `scripts/build/synonym-seeds.json`。
-
-    只在「从旧包迁移」时跑一次：种子必须保留清洗前的原始近义词（含无中文项），
-    否则第二次导出会把上一轮剔除掉的信息永久丢掉。
-    """
-    words = read_pack_words()
-    payload = {
-        "source": "public/packs/%s 已发布 synonyms（WordNet 同义集，清洗前快照）" % EXAM,
-        "note": "由 `python scripts/etl_build_pack.py --emit-synonym-seeds` 生成；"
-                "重建时 etl_build_pack.py 负责中文回填 / 词频排序 / 剔除，不依赖 wordnet-db。",
-        "words": {
-            w["id"]: [{"lemma": s.get("lemma", ""), "pos": s.get("pos", ""), "cn": s.get("cn", "")}
-                      for s in w.get("synonyms", [])]
-            for w in words if w.get("synonyms")
-        },
-    }
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=1)
-    total = sum(len(v) for v in payload["words"].values())
-    print("[OK] 已导出 %d 词 / %d 条近义词种子到 %s" % (len(payload["words"]), total, path))
-
 
 def main() -> None:
+    global PACK_VERSION, TARGET_WORDS
     ap = argparse.ArgumentParser(description="构建 ExamFlow Vocab IELTS 数据包")
     ap.add_argument("--awl-file", default=None, help="外部学术词表（AWL）文本路径，覆盖内置种子表")
     ap.add_argument("--emit-targets", default=None, help="仅导出 Tier A 目标词清单到指定路径")
-    ap.add_argument("--emit-synonym-seeds", nargs="?", const=SYNONYM_SEEDS_JSON, default=None,
-                    help="把已发布数据包的 synonyms 导出为构建输入快照（默认 scripts/build/synonym-seeds.json）")
     ap.add_argument("--verify-only", action="store_true", help="仅校验已产出的数据包")
+    ap.add_argument("--words", type=int, default=None, help=f"目标词数（默认 {TARGET_WORDS}）")
+    add_version_args(ap)
     args = ap.parse_args()
-
-    if args.emit_synonym_seeds:
-        emit_synonym_seeds(args.emit_synonym_seeds)
-        return
 
     if args.verify_only:
         errs = verify(OUT_DIR)
@@ -1823,6 +1745,13 @@ def main() -> None:
     if args.emit_targets:
         emit_targets(args.awl_file, args.emit_targets)
         return
+
+    if args.words is not None:
+        if args.words < 100:
+            raise SystemExit("--words 至少 100（再少就不像一个词包了）")
+        TARGET_WORDS = args.words
+    PACK_VERSION = resolve_version(OUT_DIR, args.version, args.bump)
+    print("[i] 目标词数 %d｜数据包版本 %s" % (TARGET_WORDS, PACK_VERSION))
 
     result = build(args.awl_file)
     path = write_quality_doc(result)
