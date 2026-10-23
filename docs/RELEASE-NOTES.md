@@ -3,6 +3,27 @@
 > 日期：2026-10-21｜状态：**M1 交付候选**（MVP 收口版）
 > 需求基线：`docs/01-PRD.md` v0.3｜实现契约：`docs/SPEC.md`｜测试：`docs/04-TEST-PLAN.md`
 
+## 0. v1.6.0 增量（2026-10-22）：US-08 义项级重建
+
+数据包 v1.5.0 → **v1.6.0**，把「词级同义词列表」换成「义项级同义替换」，关闭缺口 G-3 / OD-23。
+
+| 项 | 旧（v1.5.0） | 新（v1.6.0） |
+| :-- | :-- | :-- |
+| 数据结构 | `Word.synonyms[]`（词级并集） | `Sense.synonymGroups[]`（按 synset 分组） |
+| 候选能否说明属于哪个义项 | 否 | 是（4017 组全部带英文释义 + 搭配框架） |
+| 可用性判断 | 无 | 五态（可替换 / 框架一致 / 需改写 / 搭配不符 / 待验证） |
+| `consist of` | 给 `lie`「躺着」/ `dwell`「居住」，缺 `comprise` | `be composed of` 组：`comprise` 需改写 + `consist of O → comprise O` |
+| `consist in` | 与 `consist of` 混在一起 | 独立成组（`frame=in`），候选 `dwell` / `lie` |
+
+- 覆盖：1574/1999 词、2034/2957 义项、4017 个分组、7693 个候选；词级覆盖较旧版 **降 1.2pp**，
+  换来义项归属与可用性判断（被过滤掉的是词组、屈折变体、古体拼写与超长词）。
+- 新增 ETL `scripts/etl_synonyms.py`（纯标准库，直读 OEWN 2021 SQLite），旧 `enrich_pack_synonyms.mjs` 下线。
+- 新增 `SynonymGroups` 区块（`src/ui/SynonymGroups.tsx`）+ 校验约束（`packVerifier` 8 条新断言）。
+- 新增测试 22 项（同义区块 7 / 数据包回归 7 / 校验器 8），全量 **234/234 通过**，`npm run check` 6/6，`etl_build_pack.py --verify-only` 与
+  `etl_synonyms.py --verify-only` 均通过。
+- 裁定与代价见 **`docs/decisions/ADR-006.md`**；质量数据见 **`docs/DATA-QUALITY-SYNONYMS.md`**。
+  遗留：PRD 示例 `increase → surge/escalate` 仍不产出（G-5），义项级中文覆盖有限（G-6）。
+
 ## 1. 交付范围
 
 首发 **IELTS 2000 词数据包 v1.1.0**（7 个分块，随应用发布首块），PRD 用户故事交付状态：
@@ -16,7 +37,7 @@
 | US-05 | 形近词对比 | **已交付**（本版补点击跳转词条弹窗，OD-22 关闭） |
 | US-06 | 例句点词即查 | 不做（P1，PRD 明确不承诺） |
 | US-07 | 备份与恢复 | 已交付 |
-| US-08 | 同义替换可达性 | **未交付（ADR-005 裁定 M1 不做，列 P1）** |
+| US-08 | 同义替换可达性 | **已交付（v1.6.0 义项级重建，ADR-006；见 §0）** |
 
 关键技术形态：纯静态 PWA（无后端、无运行时 AI）、离线可用、自托管字体、IndexedDB 持久化。
 技术栈：Vite 7.3.7 + React 18.3.1 + TS 5.9.3 + Tailwind 3.4.19 + Dexie 4.4.6 + ts-fsrs 5.4.2。

@@ -155,7 +155,9 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 | | AC-07.2 导入逐字段一致 | 覆盖 | backupService「导出→清空→导入」 |
 | | AC-07.3 7 天提醒 | 手工 | BackupPanel |
 | | AC-07.4 persist + iOS 引导 | 手工 | useExamFlow / SettingsModal |
-| US-08 | 全部 | 未交付（ADR-005：M1 不做，列 P1） | synonyms 0/2000 |
+| US-08 | AC-08.1 按义项展示同义替换 | 覆盖 | `SynonymGroups.test.tsx`（7）+ `synonymPack.test.ts`（7，含 consist 标杆与中文绑定） |
+| | AC-08.2 例句可替换关系 | 部分（不单独高亮替换词） | 例句与义项绑定由数据包 `senseId` 保证；替换高亮未做，见 G-5 |
+| | AC-08.3 无数据不渲染 | 覆盖（改为该分区一行说明） | `SynonymGroups.test.tsx` 空态用例 |
 
 图例：**覆盖** = 自动化用例断言｜**逻辑覆盖 / UI 手工** = 逻辑有测试、渲染靠人工｜
 **部分** = 部分子项有自动化｜**未交付** = 缺口登记在案｜**范围外** = PRD 明确不做。
@@ -218,4 +220,4 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 - [x] `python scripts/etl_build_pack.py --verify-only` 通过（含注入脏数据反验证：`kind=REAL` 被精确拦截）
 - [x] E2E 冒烟 9/9 通过（scripts/e2e/smoke.py，报告 dist-e2e/report.md；覆盖 M-1/M-2/M-3/M-7 可自动化子集）
 - [ ] §5 手工矩阵 M-1 ~ M-10 全过（需真机 / 浏览器人工执行；M-1/M-2/M-3/M-7 已有 E2E 子集覆盖）
-- [x] 已知缺口在发布说明中显式声明（仅剩 G-3：US-08，ADR-005 裁定列 P1；G-1/G-2 已闭环）——见 `docs/RELEASE-NOTES.md`
+- [x] 已知缺口在发布说明中显式声明（G-1/G-2/G-3 已闭环；当前剩 G-5 标杆示例与 G-6 义项级中文覆盖）——见 `docs/RELEASE-NOTES.md`

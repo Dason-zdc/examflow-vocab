@@ -55,14 +55,14 @@ src/
 ├── App.tsx                         11   ErrorBoundary 包裹 ExamFlowApp（瘦入口）
 ├── main.tsx                        17   挂载 + registerSW({ immediate: true })
 ├── domain/
-│   ├── types.ts                   204   Card / ReviewLog / Settings / UserWordMeta / CustomWord / EXAM_CODES
+│   ├── types.ts                   190   Card / ReviewLog / Settings / SynonymGroup（义项级同义）/ EXAM_CODES
 │   ├── clock.ts                    72   studyDayOf / daysToExam / createManualClock
 │   ├── planner.ts                 232   planDaily / dailyNewCount / spreadSiblings / reviewPriority
 │   ├── scheduler.ts               205   createScheduler / buildCardsForWord / 考期截断 / requestRetention
 │   ├── sessionQueue.ts            235   SessionQueue（日内重现，积分制 ≥2 通关）
 │   └── reviewCommitter.ts         180   beginReview / commitReview / undoReview / SessionUndo
 ├── content/
-│   ├── packVerifier.ts            177   PackWord / PackChunk 类型 + 分块校验
+│   ├── packVerifier.ts            202   PackWord / PackChunk 类型 + 分块校验 + 义项级同义约束
 │   ├── packLoader.ts              204   loadPack（分块 + manifest + lemma-map + 版本门）
 │   ├── packCache.ts                51   IndexedDB 分块缓存（chunkKey / invalidateStaleChunks）
 │   └── dictionary.ts               93   PackDictionary（getWord 按 id 优先、回落 lemma）
@@ -90,7 +90,8 @@ src/
     ├── StudyView.tsx              265   学习页编排（CardFront / CardBack / 底部操作区 / 折叠块状态持有）
     ├── CardFront.tsx              166   词头 + 音标 + 估计权重徽章 + 挖空例句 + 3 档预判
     ├── CardBack.tsx               235   评分条 + 重排横幅 + 义项权重 + 例句高亮 + 笔记
-    ├── CardBackBlocks.tsx          97   背面可折叠区块：词根（R）/ 形近词（F），受控渲染 + 点击上抛
+    ├── CardBackBlocks.tsx         208   背面可折叠区块：词根（R）/ 形近词 + 同义（F），受控渲染 + 点击上抛
+    ├── SynonymGroups.tsx           52   义项级同义分组渲染（五态徽章 / 改写模板 / 不可用理由）
     ├── WordPreviewModal.tsx       124   形近词词条弹窗：Esc/scrim 关闭 + 焦点陷阱 + 未收录兜底
     ├── DailyPlanPanel.tsx          78   当日计划 + 警告 + 覆盖率 + 加学
     ├── VocabBookView.tsx          219   筛选 + 星标 + 恢复 + 两步确认重置 + 搜索
@@ -106,7 +107,7 @@ src/
     └── useExamFlow.ts             220   数据编排 hook（openDatabase→ensureSettings→loadPack→…）
 ```
 
-测试文件 19 个 / 158 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
+测试文件 37 个 / 234 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
 
 ## 4. 数据契约
 
@@ -122,6 +123,13 @@ lemma-map.json   { surface → lemma }（6631 条）
 
 - `PackWord.senses[].examStats[exam] = { senseWeight, tier: 'CORE'|'ADVANCED'|'EXTENDED',
   kind: 'ESTIMATED'（恒定）, sources[], isEccentric }`
+- `PackWord.senses[].synonymGroups[] = { synset, gloss, frame?, candidates[] }`（v1.6.0 起，可选）
+  - `candidates[] = { lemma, pos, status, inPack, cn?, note?, rewrite? }`
+  - `status` 五态：`DIRECT` 可替换 / `INFERRED` 框架一致 / `REWRITE` 需改写（必带 `rewrite`）/
+    `CONFLICT` 搭配不符（必带 `note`）/ `UNKNOWN` 待验证
+  - 每卡 `synonymGroups ≤ 3` 组，每组 `candidates ≤ 4`，`lemma` 必须是 3~14 位小写单词且不等于本词
+  - `cn` 只接受义项级释义：含 `、，；/` 等多义分隔符即拒绝（那是词级释义，不得冒充义项级）
+  - **词级 `Word.synonyms` 已下线**，`packVerifier` 不再接受该字段；口径见 ADR-006
 - **合规硬约定**：`kind` 只允许 `ESTIMATED`；`senseWeight` 是公开语料近似值；
   UI 文案禁止出现「真题 / 历年考频」表述（PRD §12.4，测试 T-19）
 - 加载：`loadPack()` 分块拉取 + `packCache` 落 IndexedDB；`version` 与 `minAppVersion`
@@ -263,7 +271,7 @@ useUserWordMeta(db, wordId) / useCoverage(db, exam, dictionary, scheduler, now, 
 | D-2 | 02-ARCH §1.2：Tailwind 4 CSS-first | Tailwind 3.4.19 + PostCSS | 维持 PRD 基线；v4 升级列 P1 |
 | D-3 | US-03 快捷键全集（→/Enter/R/F/Esc） | Space/1/2/3/C/Shift+C/X/Z/→/Enter/R/F | 已补齐（2026-10-21，OD-21）：→/Enter 与 Space 同一 handler；R/F 驱动背面折叠块；Esc 由弹窗自理；S=拼写 P1 剔除 |
 | D-4 | US-05.2 形近词点击跳转 | ConfusableBlock 可点击 + WordPreviewModal 词条弹窗 | 已补齐（2026-10-21，OD-22）：不离开会话、不写 storage；弹窗打开时快捷键让位 |
-| D-5 | US-08 同义替换 | 数据 0/2000，UI 未实现 | ADR-005：M1 不做，列 P1（WordNet 管线约 3 人日）；UI 契约「非空才渲染」 |
+| D-5 | US-08 同义替换 | `sense.synonymGroups[]` 义项级分组 + 五态候选 + `SynonymGroups` 区块 | 已交付（2026-10-22，**ADR-006** 取代 ADR-005）：同义主键改为 synset，词级 `Word.synonyms` 下线；覆盖 1574/1999 词、2034/2957 义项 |
 
 ## 12. 已知坑速查（踩过的，别再踩）
 

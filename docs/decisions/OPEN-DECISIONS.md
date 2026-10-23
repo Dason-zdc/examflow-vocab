@@ -45,7 +45,7 @@
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
 | OD-21 | 2026-10-21 | README §7 G-1 / UIUX P10 | 快捷键缺 4 键：`→`/`Enter`（下一个）、`R`（词根）、`F`（形近词）；`S`=拼写为 P1 剔除（D-07） | **已补齐**（2026-10-21，frontend-2）：`→`/`Enter` 复用 next handler；R/F 驱动背面折叠块（换卡重置）；折叠 state 上移 StudyView；Enter/Space 在可激活元素上让位原生激活；按键让位口径随收尾批次固化 | 无 | Resolved |
 | OD-22 | 2026-10-21 | README §7 G-2 | 形近词（confusables）不可跳转，只能看文字列表 | **已补齐**（2026-10-21，frontend-2）：ConfusableBlock 项改 button 上抛 `onOpenWord`；`WordPreviewModal` 弹词条摘要（音标/义项/估计权重，查不到显示「词库未收录」）；Esc/遮罩关闭 + 焦点陷阱；弹窗打开时快捷键让位；不 import storage，查词由 StudyView 经 dictionary 完成 | 无 | Resolved |
-| OD-23 | 2026-10-21 | README §7 G-3 | synonyms 数据 0/2000：US-08 同义词区块在全部词上为空 | **已裁定：M1 不做，列 P1**（ADR-005）。WordNet 义项对齐后覆盖仅 61.6% 且 20~30% 错配，US-08 标杆示例（increase 对 surge/escalate/proliferate）无法由同义集产出；Moby 无义项量级不可用、Webster 1913 覆盖 31% 且过时、BabelNet 许可不符；词根派生语义不同不冒充同义。P1 管线约 3 人日（独立 `etl_synonyms.py` + 抽检 100 词） | devops-2 调研结论 | Resolved（ADR-005） |
+| OD-23 | 2026-10-21 | README §7 G-3 | synonyms 数据 0/2000：US-08 同义词区块在全部词上为空 | **改判为已交付**（ADR-006，2026-10-22）：ADR-005 的「不可靠」结论归因错误——20~30% 错配来自「词级并集 + 词级贴释义」的消费方式，换数据源解不了。改为按 synset 分组写入 `sense.synonymGroups`，候选分五态并给改写模板，覆盖 1574/1999 词、2034/2957 义项。PRD 的 `increase → surge/escalate` 示例仍不产出（结构限制，登记 G-5） | ADR-006（取代 ADR-005 第 1~3 条） | Resolved（ADR-006） |
 
 ## 5. 与 PRD §12 待决策问题的对应
 

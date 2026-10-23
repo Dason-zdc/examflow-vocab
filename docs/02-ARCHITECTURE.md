@@ -629,8 +629,9 @@ export function markCore(defs: CardDef[]): CardDef[];   // 写回 isCore
 
 **不随包下发卡片定义**（`cards` 由 `domain/cardFactory.ts` 派生，理由见 §4.7）。
 
-`Word`：`{ id, lemma, phoneticUk, phoneticUs, isBasic, senses[], etymology?, confusables[], synonyms[], deprecated? }`
-`Sense`：`{ id, pos, cn, enDef?, examStats: Partial<Record<ExamCode, { freq, share, isEccentric, years[] }>> }`
+`Word`：`{ id, lemma, phoneticUk, phoneticUs, isBasic, senses[], etymology?, confusables[], wordFamily?, derivatives?, deprecated? }`
+`Sense`：`{ id, pos, cn, enDef?, examStats: Partial<Record<ExamCode, { senseWeight, tier, kind: 'ESTIMATED', sources[], isEccentric }>>, sentencePending?, synonymGroups? }`
+`SynonymGroup`（v1.6，ADR-006）：`{ synset, gloss, frame?, candidates: { lemma, pos, status, inPack, cn?, note?, rewrite? }[] }`——同义关系的主键是 synset，词级 `Word.synonyms` 已下线
 `ExampleSentence`：`{ id, wordId, senseId, en, zh, surfaceForm, provenance }`
 
 MVP 例句：`provenance` **一律 `{ type: 'ADAPTED', note: '仿真例句' }`**（team-lead 已定：例句全部为仿真例句并显式标注）。`REAL_EXAM` 分支在类型中保留，MVP 不产出。
