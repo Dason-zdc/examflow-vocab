@@ -65,7 +65,8 @@ src/
 │   ├── packVerifier.ts            202   PackWord / PackChunk 类型 + 分块校验 + 义项级同义约束
 │   ├── packLoader.ts              204   loadPack（分块 + manifest + lemma-map + 版本门）
 │   ├── packCache.ts                51   IndexedDB 分块缓存（chunkKey / invalidateStaleChunks）
-│   └── dictionary.ts               93   PackDictionary（getWord 按 id 优先、回落 lemma）
+│   ├── dictionary.ts               93   PackDictionary（getWord 按 id 优先、回落 lemma）
+│   └── dict.ts                    253   FullDictionary：全量词典分片懒加载 / 词形还原 / 前缀搜索 / Cache Storage
 ├── storage/
 │   ├── db.ts                      107   ExamFlowDB（6 表）/ toCardRow / fromCardRow / openDatabase
 │   └── backupService.ts           124   导出 / 解析 / 校验 / 序列化（fsrs 日期字段与 ISO 字符串互转）
@@ -91,8 +92,11 @@ src/
     ├── CardFront.tsx              166   词头 + 音标 + 估计权重徽章 + 挖空例句 + 3 档预判
     ├── CardBack.tsx               235   评分条 + 重排横幅 + 义项权重 + 例句高亮 + 笔记
     ├── CardBackBlocks.tsx         208   背面可折叠区块：词根（R）/ 形近词 + 同义（F），受控渲染 + 点击上抛
-    ├── SynonymGroups.tsx           52   义项级同义分组渲染（五态徽章 / 改写模板 / 不可用理由）
-    ├── WordPreviewModal.tsx       124   形近词词条弹窗：Esc/scrim 关闭 + 焦点陷阱 + 未收录兜底
+    ├── SynonymGroups.tsx           49   义项级同义分组渲染（五态徽章 / 改写模板 / 不可用理由；库外候选也可点）
+    ├── DictView.tsx               186   词典页：前缀搜索 + A–Z 分片浏览 + 详情 + 加入生词本
+    ├── DictEntryView.tsx           29   词典条目展示（音标 / 词性释义 / 词频标签 / 来源声明）
+    ├── useDictEntry.ts             29   弹窗内异步查词（数据包命中时不发请求）
+    ├── WordPreviewModal.tsx       120   形近词词条弹窗：Esc/scrim 关闭 + 焦点陷阱 + 词典兜底
     ├── DailyPlanPanel.tsx          78   当日计划 + 警告 + 覆盖率 + 加学
     ├── VocabBookView.tsx          219   筛选 + 星标 + 恢复 + 两步确认重置 + 搜索
     ├── SettingsModal.tsx          237   焦点陷阱 + Esc + 字段校验
@@ -107,7 +111,7 @@ src/
     └── useExamFlow.ts             220   数据编排 hook（openDatabase→ensureSettings→loadPack→…）
 ```
 
-测试文件 37 个 / 234 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
+测试文件 40 个 / 254 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
 
 ## 4. 数据契约
 
@@ -135,7 +139,26 @@ lemma-map.json   { surface → lemma }（6631 条）
 - 加载：`loadPack()` 分块拉取 + `packCache` 落 IndexedDB；`version` 与 `minAppVersion`
   不满足时拒绝加载并提示升级
 
-### 4.2 IndexedDB（Dexie，`SCHEMA_VERSION = 1`）
+### 4.1.1 全量词典（`public/dict/`，ADR-007）
+
+与学习数据包**解耦**的静态资源，`build_dict.py` 产出，版本独立（内容变化由 `fingerprint` 反映）。
+
+```
+manifest.json  { version, fingerprint, generatedAt, count, formCount,
+                 source: { name, url, license, used },
+                 scope: { maxRank, tags[], forcedInclude: { packWords, synonymCandidates } },
+                 shards: [{ id, file, entries, forms, bytes, sha256 }] }
+a.json … z.json / _.json
+               { e: [[lemma, phonetic, cn, rank], ...], f?: { form: lemma } }
+```
+
+- 分片键 = 词条首字母（`a`–`z`，其余 `_`）；查词只加载一个片，最大片约 478 KB。
+- `cn` 为 ECDICT 中文释义压成单行（`n. 债券；vt. 结合`），按 `；` + 词性前缀切行；不含义项权重、例句、同义关系。
+- `f` 是分片内不规则变形表（`mice → mouse`）；规则变形在运行时按后缀还原，且必须在词典中确有原形。
+- 约束：`count = Σ shards[].entries`；每个分片 `sha256` / `bytes` 必须匹配；同一 lemma 不得跨片重复。
+- 覆盖硬约束：数据包内**所有可点词**（词条 + 同义候选）必须可查，`--check-coverage` 逐词核对。
+
+### 4.2 IndexedDB（Dexie，`SCHEMA_VERSION = 3`）
 
 | 表 | 键 | 行类型 | 说明 |
 | :-- | :-- | :-- | :-- |

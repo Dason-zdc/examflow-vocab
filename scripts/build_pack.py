@@ -7,7 +7,8 @@
   2. build_word_families.py    补 wordFamily / derivatives（词根 / 同源词群 / 派生词）
   3. enrich_pack_sentences.py  用语料补例句，并把 picks 写回 scripts/build/
   4. etl_synonyms.py           按 WordNet 义项补同义替换（含义项级中文）
-  5. 三道门禁：build --verify-only / synonyms --verify-only / check_pack_coverage.py
+  5. build_dict.py             生成全量查词词典（必须最后跑：要强制收录本包所有候选）
+  6. 五道门禁：build / synonyms / dict 三个 --verify-only + 词典覆盖率 + 数据包覆盖率
 
 版本只在编排层决定一次（--version 或 --bump，缺省 patch），四个步骤写同一个版本。
 各脚本自带的 1.3.0 / 1.4.0 / 1.5.0 / 1.6.0 常量已改成兜底值：跑错顺序不会再静默降版本。
@@ -18,6 +19,7 @@
   python scripts/build_pack.py --skip-sentences    # 无网时跳过语料补例句
   python scripts/build_pack.py --version 1.7.0     # 显式指定版本
   python scripts/build_pack.py --publish           # 重建后顺便 npm run build，更新 dist/
+  python scripts/build_pack.py --skip-dict         # 只重建学习包，不动词典（词典与词包解耦）
 
 注意：本脚本只改数据包；没有 --publish 时 dist/ 仍是旧包，需要自己再跑 npm run build。
 """
@@ -76,6 +78,8 @@ def main() -> int:
     parser.add_argument("--skip-families", action="store_true", help="跳过词根 / 同源词群 / 派生词")
     parser.add_argument("--skip-sentences", action="store_true", help="跳过语料补例句（无网时用）")
     parser.add_argument("--skip-synonyms", action="store_true", help="跳过义项级同义替换")
+    parser.add_argument("--skip-dict", action="store_true", help="跳过全量查词词典")
+    parser.add_argument("--dict-version", default="1.0.0", help="词典版本号（内容变化由 fingerprint 反映）")
     parser.add_argument("--no-api", action="store_true", help="补例句时不调用 Tatoeba API")
     parser.add_argument("--dry-check", action="store_true", help="只打印将要执行的命令与版本，不实际运行")
     parser.add_argument("--publish", action="store_true", help="门禁通过后执行 npm run build，把 dist/ 一起更新")
@@ -102,6 +106,7 @@ def main() -> int:
     print(f"  步骤        建包 → 词族{'' if not args.skip_families else '（跳过）'}"
           f" → 例句{'' if not args.skip_sentences else '（跳过）'}"
           f" → 同义{'' if not args.skip_synonyms else '（跳过）'}"
+          f" → 词典{'' if not args.skip_dict else '（跳过）'}"
           " → 门禁")
     print("=" * 68)
 
@@ -145,11 +150,21 @@ def main() -> int:
             "etl_synonyms.py",
             ["--version", target_version, "--report", str(ROOT / "docs" / "DATA-QUALITY-SYNONYMS.md")],
         ))
+    if not args.skip_dict:
+        steps.append((
+            "全量查词词典（ECDICT 分片）",
+            "build_dict.py",
+            ["--pack-dir", str(PACK_DIR), "--version", args.dict_version,
+             "--report", str(ROOT / "docs" / "DATA-QUALITY-DICT.md")],
+        ))
 
     if args.dry_check:
         print("\n[dry-run] 将执行：")
         for title, script, extra in steps:
             print(f"  python scripts/{script} {' '.join(extra)}")
+        if not args.skip_dict:
+            print(f"  python scripts/build_dict.py --verify-only")
+            print(f"  python scripts/build_dict.py --check-coverage --pack-dir {PACK_DIR}")
         print(f"  python scripts/check_pack_coverage.py")
         if args.publish:
             print("  npm run build")
@@ -175,8 +190,12 @@ def main() -> int:
     for script, extra in (
         ("etl_build_pack.py", ["--verify-only"]),
         ("etl_synonyms.py", ["--verify-only"]),
+        ("build_dict.py", ["--verify-only"]),
+        ("build_dict.py", ["--check-coverage", "--pack-dir", str(PACK_DIR)]),
     ):
         if script == "etl_synonyms.py" and args.skip_synonyms:
+            continue
+        if script == "build_dict.py" and args.skip_dict:
             continue
         result = subprocess.run([sys.executable, str(SCRIPT_DIR / script), *extra])
         if result.returncode != 0:
@@ -192,6 +211,8 @@ def main() -> int:
     print("\n" + "=" * 68)
     print(f"[DONE] 数据包 v{target_version}｜{words} 词｜用时 {elapsed / 60:.1f} 分钟")
     print("  质量报告 docs/DATA-QUALITY.md / docs/DATA-QUALITY-SYNONYMS.md 已更新")
+    if not args.skip_dict:
+        print("  全量词典 public/dict/ 已更新（45k 词，按首字母分片）")
     if args.publish:
         print("  前端产物 dist/ 已重建，可直接 npm start")
     else:

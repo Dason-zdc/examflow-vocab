@@ -35,17 +35,14 @@ export function SynonymGroups({ groups, onOpenWord }: { groups: SynonymGroup[]; 
             return (
               <div key={cand.lemma} className="rounded-lg border border-line bg-warm px-2 py-1" title={meta.hint}>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {cand.inPack ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenWord(cand.lemma)}
-                      className="font-word text-xs font-emphasize text-fg-2 underline decoration-dotted underline-offset-2 transition-colors duration-150 hover:text-accent-soft-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      {cand.lemma}
-                    </button>
-                  ) : (
-                    <span className="font-word text-xs font-emphasize text-fg-2">{cand.lemma}</span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => onOpenWord(cand.lemma)}
+                    aria-label={`查看 ${cand.lemma} 的释义`}
+                    className="font-word text-xs font-emphasize text-fg-2 underline decoration-dotted underline-offset-2 transition-colors duration-150 hover:text-accent-soft-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    {cand.lemma}
+                  </button>
                   <span className="text-2xs text-meta">{cand.pos}</span>
                   {cand.cn ? <span className="text-2xs text-muted">{cand.cn}</span> : null}
                   <Badge tone={meta.tone}>{meta.label}</Badge>

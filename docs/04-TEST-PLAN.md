@@ -2,7 +2,8 @@
 
 > 角色：team-lead（测试契约）
 > 日期：2026-10-21
-> 状态：**158 项自动化用例全绿**（19 个文件），6/6 架构门禁通过，tsc 0 错误，E2E 冒烟 9/9（`scripts/e2e/smoke.py`，TG-4 已闭环）。
+> 状态：**254 项自动化用例全绿**（40 个文件），6/6 架构门禁通过，tsc 0 错误，E2E 冒烟 9/9（`scripts/e2e/smoke.py`，TG-4 已闭环）。
+> 增量：2026-10-22 义项级同义 +22 例、2026-10-23 全量词典 +20 例；§2 的逐文件清单保留 2026-10-21 基线，增量见 §8。
 > 上游：`docs/01-PRD.md` 各 US 的 AC；`docs/SPEC.md` §10/§11。
 
 ---
@@ -33,7 +34,7 @@ python scripts/e2e/smoke.py   # L6 E2E 冒烟（先 npm run build；产物 dist-
 Provider 测试文件头 `// @vitest-environment jsdom`；存储测试依赖 `fake-indexeddb/auto`。
 （历史教训：include 只写 `.ts` 时 `.tsx` 测试静息不跑，曾使 Provider 全流程测试长期缺席。）
 
-## 2. 用例清单（19 文件 / 158 用例）
+## 2. 用例清单（2026-10-21 基线：19 文件 / 158 用例）
 
 ### L1 domain（56）
 
@@ -150,7 +151,8 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 | | AC-04.3 次要模块折叠 | 覆盖（实现默认折叠） | CardBack 折叠块 |
 | US-05 | AC-05.1 形近词展示 | 手工 | CardBack ConfusableBlock |
 | | AC-05.2 点击跳转 | 交付完成 | WordPreviewModal + ConfusableBlock 可点击；渲染细节靠 E2E + 手工（TG-1） |
-| US-06 | 全部 | 范围外（P1 不做） | PRD 明确 |
+| US-06 | AC-06.1 例句点词即查 | 覆盖 | `StudyFeatures.test.tsx`（点词 → 弹窗 → 加入生词本）+ `LookupModal` 词典兜底 |
+| | AC-06.2 词形还原 | 覆盖 | `dictionary.test.ts` + `dict.test.ts`（不规则 / 后缀 / 不猜词） |
 | US-07 | AC-07.1 导出字段 | 覆盖 | backupService 导出 + validate |
 | | AC-07.2 导入逐字段一致 | 覆盖 | backupService「导出→清空→导入」 |
 | | AC-07.3 7 天提醒 | 手工 | BackupPanel |
@@ -158,6 +160,7 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 | US-08 | AC-08.1 按义项展示同义替换 | 覆盖 | `SynonymGroups.test.tsx`（7）+ `synonymPack.test.ts`（7，含 consist 标杆与中文绑定） |
 | | AC-08.2 例句可替换关系 | 部分（不单独高亮替换词） | 例句与义项绑定由数据包 `senseId` 保证；替换高亮未做，见 G-5 |
 | | AC-08.3 无数据不渲染 | 覆盖（改为该分区一行说明） | `SynonymGroups.test.tsx` 空态用例 |
+| 词典（ADR-007） | 任意词可查 / 分片加载 / 离线缓存 | 覆盖 | `dict.test.ts`（13）、`DictLookup.test.tsx`（4）、`DictView.test.tsx`（3）；结构校验 `build_dict.py --verify-only`，覆盖校验 `--check-coverage` |
 
 图例：**覆盖** = 自动化用例断言｜**逻辑覆盖 / UI 手工** = 逻辑有测试、渲染靠人工｜
 **部分** = 部分子项有自动化｜**未交付** = 缺口登记在案｜**范围外** = PRD 明确不做。
@@ -213,11 +216,23 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 
 ## 7. 退出准则（发版门）
 
-- [x] `npm test` 158/158 通过（19 文件；含 P0-1 回归 ExamFlowApp.test.tsx 与快捷键 14 例）
+- [x] `npm test` 254/254 通过（40 文件；含 P0-1 回归 ExamFlowApp.test.tsx、快捷键 14 例、同义 22 例、词典 20 例）
 - [x] `npm run check` 6/6 通过
 - [x] `npm run typecheck` 0 错误
 - [x] `npm run build` 成功且 SW 预缓存 20 条目
 - [x] `python scripts/etl_build_pack.py --verify-only` 通过（含注入脏数据反验证：`kind=REAL` 被精确拦截）
+- [x] `python scripts/etl_synonyms.py --verify-only` 与 `build_dict.py --verify-only` 通过；`build_dict.py --check-coverage` 覆盖 6005/6006（缺 `swosh`，ECDICT 无词条）
 - [x] E2E 冒烟 9/9 通过（scripts/e2e/smoke.py，报告 dist-e2e/report.md；覆盖 M-1/M-2/M-3/M-7 可自动化子集）
 - [ ] §5 手工矩阵 M-1 ~ M-10 全过（需真机 / 浏览器人工执行；M-1/M-2/M-3/M-7 已有 E2E 子集覆盖）
-- [x] 已知缺口在发布说明中显式声明（G-1/G-2/G-3 已闭环；当前剩 G-5 标杆示例与 G-6 义项级中文覆盖）——见 `docs/RELEASE-NOTES.md`
+- [x] 已知缺口在发布说明中显式声明（G-1/G-2/G-3 已闭环；当前剩 G-5 标杆示例、G-6 义项级中文覆盖、G-7 词典只有词级中文）——见 `docs/RELEASE-NOTES.md`
+
+## 8. 增量用例（2026-10-22 / 10-23）
+
+| 文件 | 用例数 | 覆盖 |
+| :-- | --: | :-- |
+| `src/ui/SynonymGroups.test.tsx` | 7 | 义项分组渲染 / 五态徽章 / 改写模板 / 库内外候选均可点 / 空态 |
+| `src/content/synonymPack.test.ts` | 7 | 数据包回归：`consist of` 必产出 `comprise`、`consist in` 不串组、候选中文绑定义项 |
+| `src/content/packVerifier.test.ts`（新增 8 条） | 8 | 义项级同义约束：synset / gloss / 五态 / 非本词 / 改写模板 / 冲突理由 / 中文不得多义合并 |
+| `src/content/dict.test.ts` | 13 | 精确查词 / 不规则变形 / 跨字母变形 / 后缀还原 / 查不到返回 null / 前缀搜索 / 分片浏览 / manifest 失败降级 / sha256 拒绝 / 释义切行 |
+| `src/ui/DictLookup.test.tsx` | 4 | 弹窗未收录时回落词典 / 两边都没有才提示 / 词典释义带入自定义词条 / 库外候选可点 |
+| `src/ui/DictView.test.tsx` | 3 | A–Z 浏览与切分片 / 详情与加入生词本 / 词包内词不重复加入 |

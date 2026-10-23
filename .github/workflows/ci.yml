@@ -61,5 +61,11 @@ jobs:
       - name: 覆盖率下限（英文释义 95% / 义项级同义 60% / 同义中文 10%）
         run: python scripts/check_pack_coverage.py
 
+      - name: 全量词典结构校验（分片 sha256 / 条目数 / 释义完整性）
+        run: python scripts/build_dict.py --verify-only
+
+      - name: 词典覆盖（数据包内所有可点词必须查得到）
+        run: python scripts/build_dict.py --check-coverage
+
       - name: 编排器自检（不运行重建，只检查参数与输入清单）
         run: python scripts/build_pack.py --dry-check --skip-sentences

@@ -1,25 +1,31 @@
 import { useEffect, useRef } from 'react';
 import type { ExamCode } from '../domain/types';
 import type { PackWord } from '../content/packVerifier';
+import { fullDictionary, type FullDictionary } from '../content/dict';
 import { Button, IconButton, ProgressBar } from './primitives';
 import { ICON_SIZE, ICON_STROKE, X } from './icons';
 import { weightLabel } from './format';
+import { DictEntryView } from './DictEntryView';
+import { useDictEntry } from './useDictEntry';
 
 /** 形近词词条弹窗（PRD AC-05.2）：Esc / scrim 关闭 + 焦点陷阱。
  * 生词本为 P1（S-02），入口直接隐藏，不做不可用态。
- * word 为 null（词库未收录该词形）时展示兜底文案，弹窗照常可关。 */
+ * 数据包未收录时回落到全量词典；两者都没有才展示兜底文案。 */
 
 export interface WordPreviewModalProps {
   /** 要预览的词形；为 null 时不渲染 */
   lemma: string | null;
-  /** 词典查询结果；null = 词库未收录 */
+  /** 数据包查询结果；null = 未收录，回落到词典 */
   word: PackWord | null;
   exam: ExamCode;
   onClose: () => void;
+  /** 测试可注入；默认用应用内共享词典 */
+  dict?: FullDictionary;
 }
 
-export function WordPreviewModal({ lemma, word, exam, onClose }: WordPreviewModalProps) {
+export function WordPreviewModal({ lemma, word, exam, onClose, dict = fullDictionary }: WordPreviewModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const dictState = useDictEntry(lemma, !word, dict);
 
   // 打开时把焦点移入弹窗（无内部输入框，聚焦对话框容器本身）
   useEffect(() => {
@@ -71,7 +77,7 @@ export function WordPreviewModal({ lemma, word, exam, onClose }: WordPreviewModa
       >
         <header className="flex items-center justify-between border-b border-line-soft px-4 py-3">
           <h2 id="word-preview-title" className="font-word text-lg font-emphasize text-fg">
-            {word?.lemma ?? lemma}
+            {word?.lemma ?? dictState.entry?.lemma ?? lemma}
           </h2>
           <IconButton label="关闭词条" onClick={onClose}>
             <X size={ICON_SIZE.standalone} strokeWidth={ICON_STROKE} aria-hidden />
@@ -108,8 +114,15 @@ export function WordPreviewModal({ lemma, word, exam, onClose }: WordPreviewModa
                 })}
               </ul>
             </>
+          ) : dictState.status === 'loading' ? (
+            <p className="py-6 text-center text-md text-muted">正在查词典…</p>
+          ) : dictState.entry ? (
+            <DictEntryView entry={dictState.entry} />
           ) : (
-            <p className="py-6 text-center text-md text-muted">词库未收录</p>
+            <div className="flex flex-col gap-1 py-6 text-center">
+              <p className="text-md text-muted">词库与词典均未收录「{lemma}」</p>
+              <p className="text-2xs text-meta">词典覆盖 4.5 万学习者向词条；专有名词与生造词可能不在其中。</p>
+            </div>
           )}
         </div>
 

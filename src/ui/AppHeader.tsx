@@ -1,6 +1,7 @@
 import type { ExamCode, Settings } from '../domain/types';
+import type { ViewKey } from './useExamFlow';
 import { IconButton } from './primitives';
-import { BookOpen, ICON_SIZE, ICON_STROKE, LayoutDashboard, Search, Settings as SettingsIcon } from './icons';
+import { BookOpen, ICON_SIZE, ICON_STROKE, Languages, LayoutDashboard, Search, Settings as SettingsIcon } from './icons';
 import { daysToExamLabel } from './format';
 
 /** 全局外壳（UIUX §7.0）：Header + 本轮进度条 + 主导航 */
@@ -10,12 +11,12 @@ export interface AppHeaderProps {
   /** 未设置考试日期时为 null（此时 Header 只显示引导，不渲染倒计时天数） */
   daysToExam: number | null;
   progress: { done: number; total: number } | null;
-  view: 'study' | 'vocab';
+  view: ViewKey;
   /** 已发布数据包的考试（只有这些能切换） */
   exams: ExamCode[];
   searchQuery: string;
   onSearch: (q: string) => void;
-  onView: (v: 'study' | 'vocab') => void;
+  onView: (v: ViewKey) => void;
   onSwitchExam: (exam: ExamCode) => void;
   onOpenSettings: () => void;
   onOpenDashboard: () => void;
@@ -29,7 +30,7 @@ const EXAM_LABEL: Record<ExamCode, string> = {
   TOEFL: '托福',
 };
 
-const VIEW_LABEL = { study: '学习', vocab: '词库与生词本' } as const;
+const VIEW_LABEL: Record<ViewKey, string> = { study: '学习', vocab: '词库', dict: '词典' };
 
 export function AppHeader({
   settings,
@@ -91,7 +92,7 @@ export function AppHeader({
           </form>
 
           <nav aria-label="主导航" className="ml-auto hidden items-center gap-1 md:flex">
-            {(Object.keys(VIEW_LABEL) as Array<'study' | 'vocab'>).map((v) => (
+            {(Object.keys(VIEW_LABEL) as ViewKey[]).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -102,6 +103,7 @@ export function AppHeader({
                 }`}
               >
                 {v === 'vocab' ? <BookOpen size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'dict' ? <Languages size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
                 {VIEW_LABEL[v]}
               </button>
             ))}

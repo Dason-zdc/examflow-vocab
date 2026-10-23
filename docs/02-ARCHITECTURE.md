@@ -250,7 +250,8 @@ npm view <pkg>@<ver> peerDependencies
 │ clock.ts   day.ts           │   │ packLoader.ts（下载 / 校验 / 缓存编排）    │
 │ planner.ts scheduler.ts     │   │ packVerifier.ts（sha256 + 形状断言）       │
 │ sessionQueue.ts             │   │ packCache.ts（分块仓储）                   │
-│ reviewCommitter.ts          │   │ dictionary.ts（查词 / 词形还原，P1 扩大）  │
+│ reviewCommitter.ts          │   │ dictionary.ts（学习包查词 / 词形还原）    │
+│                             │   │ dict.ts（全量词典分片，ADR-007）          │
 │ cardFactory.ts  undo.ts     │   └────────────┬──────────────────────────────┘
 │ ports/*.ts（仓储端口接口）   │                 │
 │ 纯 TS：禁 import Dexie/React │                 │
@@ -316,6 +317,7 @@ examflow-vocab/
 │   │       └── wordMetaRepo.ts  sessionStateRepo.ts
 │   ├── content/
 │   │   ├── packLoader.ts  packVerifier.ts  packCache.ts  dictionary.ts
+│   │   ├── dict.ts（ECDICT 全量词典：分片懒加载 + 词形还原）
 │   ├── storage/
 │   │   ├── db.ts  mappers.ts  persistence.ts  backupService.ts
 │   │   └── repositories/

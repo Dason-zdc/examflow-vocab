@@ -8,6 +8,7 @@ import { daysToExam } from '../domain/clock';
 import { AppHeader } from './AppHeader';
 import { StudyView } from './StudyView';
 import { VocabBookView } from './VocabBookView';
+import { DictView } from './DictView';
 import { SettingsModal } from './SettingsModal';
 import { DashboardContainer } from './DashboardContainer';
 import { useExamFlow } from './useExamFlow';
@@ -58,7 +59,8 @@ export function ExamFlowApp() {
           searchQuery={searchQuery}
           onSearch={(q) => {
             setSearchQuery(q);
-            flow.setView('vocab');
+            // 词典页就地过滤；其余视图沿用「搜索即进词库」的既有交互
+            if (flow.view !== 'dict') flow.setView('vocab');
           }}
           prevRevision={prevRevision}
         />
@@ -162,8 +164,15 @@ function Chrome({ flow, db, settings, dictionary, searchQuery, onSearch, prevRev
             onExport={flow.exportBackupFile}
             onImport={flow.importBackupFile}
           />
-        ) : (
+        ) : flow.view === 'vocab' ? (
           <VocabBookView db={db} exam={settings.exam} dictionary={dictionary} onReset={flow.resetProgress} initialQuery={searchQuery} />
+        ) : (
+          <DictView
+            db={db}
+            exam={settings.exam}
+            inPack={(lemma) => Boolean(dictionary.getWord(lemma))}
+            initialQuery={searchQuery}
+          />
         )}
       </main>
 

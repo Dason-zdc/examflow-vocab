@@ -1,0 +1,240 @@
+{
+  "version": "1.0.0",
+  "fingerprint": "3a77900cad16f3ef",
+  "generatedAt": "2026-10-23T02:56:08+00:00",
+  "count": 45384,
+  "formCount": 29761,
+  "source": {
+    "name": "ECDICT",
+    "url": "https://github.com/skywind3000/ECDICT",
+    "license": "MIT",
+    "used": "词条、音标、中文释义、词频序号、词形变化"
+  },
+  "scope": {
+    "maxRank": 60000,
+    "tags": [
+      "cet4",
+      "cet6",
+      "gk",
+      "gre",
+      "ielts",
+      "ky",
+      "toefl",
+      "zk"
+    ],
+    "forcedInclude": {
+      "packWords": 1999,
+      "synonymCandidates": 4840
+    }
+  },
+  "shards": [
+    {
+      "id": "a",
+      "file": "a.json",
+      "entries": 2754,
+      "forms": 1630,
+      "bytes": 247865,
+      "sha256": "1e09c0685c8be7e5d38bfcaa2db42c0bbf0e9c31e154a2c29a789114869393a3"
+    },
+    {
+      "id": "b",
+      "file": "b.json",
+      "entries": 2506,
+      "forms": 1883,
+      "bytes": 216667,
+      "sha256": "f4e294fceac3a0cb8054a5d3df6f8277fda1ce23e9449eaf32382d24128e93e3"
+    },
+    {
+      "id": "c",
+      "file": "c.json",
+      "entries": 4320,
+      "forms": 3066,
+      "bytes": 409316,
+      "sha256": "115dccaa9984135074ddd21509705251e3a282dea043992f390470938caf6de4"
+    },
+    {
+      "id": "d",
+      "file": "d.json",
+      "entries": 2773,
+      "forms": 1995,
+      "bytes": 256815,
+      "sha256": "f97a81a530ccdbd878f44f5c6ba8c11f141ee9b3788e0f01530269ad40b29f57"
+    },
+    {
+      "id": "e",
+      "file": "e.json",
+      "entries": 1935,
+      "forms": 1273,
+      "bytes": 181390,
+      "sha256": "3618271756a5caddb38d76d4a330bb609209e162aa443b7ed157c183db58b8a2"
+    },
+    {
+      "id": "f",
+      "file": "f.json",
+      "entries": 1922,
+      "forms": 1307,
+      "bytes": 177950,
+      "sha256": "8ef37ff076a0825f91a68c821c83439852ab54fb733b0d3157df2d94f281e200"
+    },
+    {
+      "id": "g",
+      "file": "g.json",
+      "entries": 1450,
+      "forms": 1006,
+      "bytes": 129189,
+      "sha256": "d7c6d7aa2092c50ca2ca16a2947e2f72ad1c003f83fd21ce5728dc151333258c"
+    },
+    {
+      "id": "h",
+      "file": "h.json",
+      "entries": 1710,
+      "forms": 1072,
+      "bytes": 151417,
+      "sha256": "78e8aef9d6a09799aaf1c11ec7221d464ecb275872224c26720d85ff29ce523b"
+    },
+    {
+      "id": "i",
+      "file": "i.json",
+      "entries": 2109,
+      "forms": 1093,
+      "bytes": 201768,
+      "sha256": "d7182d2caf6e9ab851c1dd08a81e9136b6b6045e7e5a59fc1907e176b583671c"
+    },
+    {
+      "id": "j",
+      "file": "j.json",
+      "entries": 350,
+      "forms": 256,
+      "bytes": 32395,
+      "sha256": "b8bb73a4958f99663d16b4522cc74963431840dbf23e3368dc8e3a95038063c3"
+    },
+    {
+      "id": "k",
+      "file": "k.json",
+      "entries": 325,
+      "forms": 234,
+      "bytes": 27305,
+      "sha256": "a6261dbd79ec09322da9b86c1518529cffe4b96764bd64b6d4b47b2eb26983cc"
+    },
+    {
+      "id": "l",
+      "file": "l.json",
+      "entries": 1385,
+      "forms": 876,
+      "bytes": 123007,
+      "sha256": "82597c2143508534cb866f465e4b7324947dc52c34e64172eff73f1a88d8738e"
+    },
+    {
+      "id": "m",
+      "file": "m.json",
+      "entries": 2477,
+      "forms": 1544,
+      "bytes": 225136,
+      "sha256": "699eee34ea5055fe6fa50aa133b6f6e383988370852f809d7387994304cabe99"
+    },
+    {
+      "id": "n",
+      "file": "n.json",
+      "entries": 963,
+      "forms": 465,
+      "bytes": 83162,
+      "sha256": "25a58d37cd4cac50b692fa8542a2b3e332a75a988dc85cf781a1ea53bd11e10d"
+    },
+    {
+      "id": "o",
+      "file": "o.json",
+      "entries": 1163,
+      "forms": 720,
+      "bytes": 111431,
+      "sha256": "50ba3ba781ed890753128705d9f5cc61f2cfd2adb218370d7bd52614e2cc3e57"
+    },
+    {
+      "id": "p",
+      "file": "p.json",
+      "entries": 3670,
+      "forms": 2376,
+      "bytes": 361919,
+      "sha256": "0a14cd6527ae3a89be7b059e86ea8b8e5df226a883086f4210116df5e1451ced"
+    },
+    {
+      "id": "q",
+      "file": "q.json",
+      "entries": 202,
+      "forms": 148,
+      "bytes": 19337,
+      "sha256": "bfd43750a1ef4a546901ef16000744e1e1cf518390e7b28f028e2265396cc927"
+    },
+    {
+      "id": "r",
+      "file": "r.json",
+      "entries": 2413,
+      "forms": 1937,
+      "bytes": 244428,
+      "sha256": "20cd8a741cce0c966811bb6fa9549304c5727e0ebd3c8d2cbf0ea2f03a4748e0"
+    },
+    {
+      "id": "s",
+      "file": "s.json",
+      "entries": 5092,
+      "forms": 3634,
+      "bytes": 489756,
+      "sha256": "19a0c75aca89bcc822bf032f153849e14939b6c3f4013e52fea68d3eee129c99"
+    },
+    {
+      "id": "t",
+      "file": "t.json",
+      "entries": 2283,
+      "forms": 1493,
+      "bytes": 211897,
+      "sha256": "0d97f6b489afc776060e582bba2519ce7d66974420ed9c2f02f142b0976e472c"
+    },
+    {
+      "id": "u",
+      "file": "u.json",
+      "entries": 1585,
+      "forms": 413,
+      "bytes": 144202,
+      "sha256": "29fe4f6f688b205c86edecb8e417fe0ef2460eddcd11d2157e0ea3484005218f"
+    },
+    {
+      "id": "v",
+      "file": "v.json",
+      "entries": 679,
+      "forms": 401,
+      "bytes": 63662,
+      "sha256": "d035b334a1e408963360f3ebdbafa7b8d0826fcb5f2a24eee1f91a675ecf121f"
+    },
+    {
+      "id": "w",
+      "file": "w.json",
+      "entries": 1092,
+      "forms": 790,
+      "bytes": 99777,
+      "sha256": "c1d14deb57f7977516f67e036ebf25cfd8b4762dd04ee19c107abb2277a5e60f"
+    },
+    {
+      "id": "x",
+      "file": "x.json",
+      "entries": 12,
+      "forms": 5,
+      "bytes": 1085,
+      "sha256": "3d808c7e3c55bcdf337b973622f97ab94c5ac16e8f53256166b1dc3ae033be52"
+    },
+    {
+      "id": "y",
+      "file": "y.json",
+      "entries": 127,
+      "forms": 91,
+      "bytes": 11098,
+      "sha256": "9588d78c719295b8cfa94c11beef69d08f42de6cbc456856eb22c38353b9256f"
+    },
+    {
+      "id": "z",
+      "file": "z.json",
+      "entries": 87,
+      "forms": 53,
+      "bytes": 7466,
+      "sha256": "b6e1ae7d30830a1fe032b08312c02782396f7bbe5f73d02941650391fdef8db9"
+    }
+  ]
+}

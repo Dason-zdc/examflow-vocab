@@ -3,7 +3,7 @@
 按**真题义项考频**决定学什么、按**考试日期**决定什么时候复习的雅思背单词 PWA。
 离线优先（IndexedDB + Service Worker 缓存），可选登录自建后端实现账号与多设备同步；无运行时 AI。
 
-> 状态：M1 交付候选（IELTS 2000 词数据包 v1.6.0 + 全量 P0 功能 + 234 项前端自动化测试 + 7 项后端集成冒烟 + E2E 冒烟 9/9 + 6 项架构门禁）
+> 状态：M1 交付候选（IELTS 2000 词数据包 v1.6.0 + 全量 P0 功能 + 254 项前端自动化测试 + 7 项后端集成冒烟 + E2E 冒烟 9/9 + 6 项架构门禁）
 > 需求基线：`docs/01-PRD.md`（v0.3）｜设计记录：`docs/02-ARCHITECTURE.md`、`docs/03-UIUX.md`｜**实现契约：`docs/SPEC.md`**｜测试：`docs/04-TEST-PLAN.md`｜**后端与同步协议：`docs/API.md`**｜发布说明：`docs/RELEASE-NOTES.md`
 
 ---
@@ -19,7 +19,7 @@
 | US-05 | 形近词对比 | **已交付** | 展示：`lemma + 区分理由 + 要点`，默认折叠（`CardBack.tsx ConfusableBlock`）；点击形近词弹出词条摘要浮层（`WordPreviewModal`：音标 / 各义项 / 该考试估计权重条，查不到显示「词库未收录」；Esc 与点击遮罩关闭 + 焦点陷阱；弹窗打开时学习快捷键让位，不离开当前会话） |
 | US-06 | 例句点词即查 | **已交付** | 背面例句逐词可点（`CardBack.SentenceText`）→ 词形还原 → 词条弹窗（`LookupModal`）；词库内词一键标星，词库外词创建自定义词条 + CUSTOM 卡进入新卡队列（`customWordsUseCase.addCustomWord`） |
 | US-07 | 备份与恢复 | **已交付** | 单 JSON 导出 settings / cards / reviewLogs / userWordMeta / customWords（`storage/backupService.ts`，fsrs 日期字段序列化往返）；导入逐字段校验（`validateBackup`）；>7 天备份提醒（`BackupPanel`）；`navigator.storage.persist()` 调用 + iOS「请添加到主屏幕」引导 |
-| US-08 | 同义替换可达性 | **已交付（v1.6.0 义项级重建）** | 同义关系挂义项：`sense.synonymGroups[]` 按 WordNet synset 分组，每组带英文释义 + 搭配框架，候选分五态（`可替换 / 框架一致 / 需改写 / 搭配不符 / 待验证`），需改写的直接给模板（`consist of O → comprise O`）。覆盖 1574/1999 词、2034/2957 义项、7693 候选（21.5% 带义项级中文，由「候选中文义项段 ∩ 卡片中文」求交得到）；ETL `scripts/etl_synonyms.py`，口径见 **ADR-006**（取代 ADR-005）。PRD 示例 `increase → surge/escalate` 仍不产出，见 §7 G-5 |
+| US-08 | 同义替换可达性 | **已交付（v1.6.0 义项级重建）** | 同义关系挂义项：`sense.synonymGroups[]` 按 WordNet synset 分组，每组带英文释义 + 搭配框架，候选分五态（`可替换 / 框架一致 / 需改写 / 搭配不符 / 待验证`），需改写的直接给模板（`consist of O → comprise O`）。覆盖 1574/1999 词、2034/2957 义项、7693 候选（21.5% 带义项级中文，由「候选中文义项段 ∩ 卡片中文」求交得到）；ETL `scripts/etl_synonyms.py`，口径见 **ADR-006**（取代 ADR-005）。PRD 示例 `increase → surge/escalate` 仍不产出，见 §7 G-5。同义候选不再按「是否在包内」禁用点击，库外词由全量词典兜底（ADR-007） |
 
 ---
 
@@ -37,6 +37,7 @@
 | 全量例句 + 朗读 | 语料例句（Tatoeba 英中句对，真实人工翻译），当前义项优先；每句可朗读、可点词、可溯源到句对编号 | 背面例句区 |
 | 词根兜底 | 673 词有人工词根 + 233 词自动拆分（合计 45.3%）；其余展示词形变化，明确标注「自动拆分」不冒充人工词根 | 背面词根区（`R`） |
 | 同义替换 | 数据包 v1.6.0：按 WordNet 义项分组，每组带释义与搭配框架，候选标注可替换性五态；`consist of` 与 `consist in` 各自成组、候选不串味 | 背面形近/同义区（`F`） |
+| 全量查词 | 独立词典层：ECDICT 45,384 词按首字母分片懒加载，支持词形还原与前缀搜索；数据包外的词（同义候选、例句生词）也能查释义，并可一键加入生词本 | 顶栏「词典」/ 任意词条弹窗 |
 | 考点提炼 | 由义项权重/层级/熟词僻义对比推导考点提示，并保留「我的笔记」 | 背面考点与笔记区 |
 
 > 数据包现状：仓库内只发布了 **IELTS 2000 词（v1.6.0）**。考研 / 六级 / 四六级包需要跑 `scripts/etl_build_pack.py`（当前脚本硬编码 IELTS），因此 UI 只展示已发布词书，不伪造其它考试数据。
@@ -64,7 +65,7 @@ npm install            # 依赖安装
 npm run dev:full       # 一键起前后端：前端 5173 + 后端 8787（/api 由 Vite 代理）
 npm run build          # 生产构建 → dist/（含 Service Worker 与预缓存清单）
 npm run serve          # 构建并单端口启动（前端 + API 同源，默认 http://localhost:8787）
-npm test               # 234 项前端测试（vitest）
+npm test               # 254 项前端测试（vitest）
 npm run test:api       # 7 项后端集成冒烟（自起服务 + 临时 SQLite）
 npm run check          # 6 项架构门禁
 npm run typecheck      # tsc --noEmit
@@ -100,26 +101,29 @@ curl -X POST http://localhost:8787/api/v1/auth/register \
 | `npm run dev:full` | 同时起前端（5173）与后端（8787），`/api` 走 Vite 代理 |
 | `npm run dev:api` | 只起后端，`--watch` 热重启 |
 | `npm run serve` | 生产：构建 + 单端口启动（静态 `dist/` + API） |
-| `npm test` | vitest 全量（37 个文件 / 234 用例，`.ts` 与 `.tsx` 均收集） |
+| `npm test` | vitest 全量（40 个文件 / 254 用例，`.ts` 与 `.tsx` 均收集） |
 | `npm run test:api` | 后端集成冒烟（7 项，node:test，自起服务 + 临时 SQLite） |
 | `npm run check` | 6 项门禁：文件行数 / emoji / 硬编码颜色 / 图标唯一出口 / Dexie 事务边界 / 入口只装配 |
 | `npm run typecheck` | TypeScript 严格模式全量检查 |
 | `npm run build` | vite build + vite-plugin-pwa（generateSW） |
 | `python scripts/gen-pwa-icons.py` | 重新栅格化 PWA 图标（需 Pillow；品牌矢量源在 `public/favicon.svg`） |
-| **`python scripts/build_pack.py`** | **一条命令重建数据包**：建包 → 词根/词族 → 语料例句 → 义项级同义 → 三道门禁，任一步失败即停。版本由它统一决定（缺省 patch +1），缺输入会提前报错而不是静默降级。`--words 3000` 扩词、`--skip-sentences` 离线跑、`--publish` 顺手 `npm run build`、`--dry-check` 只看命令 |
+| **`python scripts/build_pack.py`** | **一条命令重建数据包**：建包 → 词根/词族 → 语料例句 → 义项级同义 → 全量词典 → 五道门禁，任一步失败即停。版本由它统一决定（缺省 patch +1），缺输入会提前报错而不是静默降级。`--words 3000` 扩词、`--skip-sentences` 离线跑、`--skip-dict` 不动词典、`--publish` 顺手 `npm run build`、`--dry-check` 只看命令 |
 | `python scripts/etl_build_pack.py` | 只跑「建包」这一步（会覆盖 `docs/DATA-QUALITY.md`）；单独使用时需自己再跑同义 ETL |
 | `python scripts/etl_build_pack.py --verify-only` | 对已发布数据包跑交付校验（sha256 / ID 唯一性 / 例句覆盖 / examStats Schema） |
 | `python scripts/etl_synonyms.py --wn-db <wn.db>` | 重建义项级同义替换（`sense.synonymGroups`），写回分块并重算 sha256/版本。OEWN 2021 的 `wn.db` 约 109 MB，放 `scripts/.cache/wn.db` 或用 `--wn-db` 指定（不入库） |
 | `python scripts/etl_synonyms.py --dry` / `--word consist` | 只看统计 / 只看一个词的分组（人工核对口径） |
 | `python scripts/etl_synonyms.py --verify-only` | 校验已发布数据包的同义结构（五态、候选非本词、需改写有模板、搭配不符有理由） |
 | `python scripts/etl_synonyms.py --report docs/DATA-QUALITY-SYNONYMS.md` | 重新生成同义质量报告（覆盖率 / 五态分布 / consist 标杆） |
+| `python scripts/build_dict.py` | 构建全量查词词典（ECDICT → `public/dict/` 分片 + manifest），`--report docs/DATA-QUALITY-DICT.md` 同时出质量报告 |
+| `python scripts/build_dict.py --verify-only` | 校验词典分片（sha256 / bytes / 条目数 / 释义完整性） |
+| `python scripts/build_dict.py --check-coverage` | 校验数据包内所有可点词都能查到（同义候选 + 词包词条），缺一个即失败 |
 | `python scripts/fetch_tatoeba.py` | 下载 Tatoeba 英中句对语料（约 26 MB，构建期缓存到 `scripts/.cache/`，不入库） |
 | `python scripts/enrich_pack_sentences.py` | 用语料例句替换模板例句并按义项对齐（`--dry` 只看覆盖率与抽样），重算 sha256 与版本 |
 | `python scripts/e2e/smoke.py` | E2E 冒烟 9 断言（自包含启停 vite preview + Playwright Chromium；报告落 `dist-e2e/`，需 managed venv 的 python） |
 
 > CI：`.github/workflows/ci.yml` 在 push / PR 时跑 typecheck、6 项门禁、全量测试、生产构建，
-> 以及数据包的三道只读校验（`--verify-only` ×2 + 覆盖率下限）。数据包那一半**不需要** ECDICT /
-> WordNet / Tatoeba 缓存，所以 CI 不用下载 170 MB 构建输入。
+> 以及数据包与词典的五道只读校验（`--verify-only` ×3 + 数据包覆盖率 + 词典覆盖率）。
+> 这两半都**不需要** ECDICT / WordNet / Tatoeba 缓存，所以 CI 不用下载 170 MB 构建输入。
 
 ## 4. 架构导览
 
@@ -131,6 +135,7 @@ curl -X POST http://localhost:8787/api/v1/auth/register \
 src/
 ├── domain/     纯领域层：types / clock / planner / scheduler / sessionQueue / reviewCommitter
 ├── content/    数据包层：packVerifier（校验）/ packLoader（分块加载）/ dictionary / packCache
+│               dict（全量词典：分片懒加载 / 词形还原 / 前缀搜索）
 │               customWord（生词→词条）/ morphology（词缀自动拆分兜底）
 ├── storage/    Dexie 4.4.6：db（表结构，含同步表）/ backupService（导入导出序列化）
 ├── app/        用例层：onboardingUseCase / sessionBuilder / reviewUseCase / userWordsUseCase
@@ -146,6 +151,7 @@ src/
                 SentenceTokens（点词即查分词）
                 SpellingModal / LookupModal / AiTutorPanel / DashboardModal / PlacementTestModal
                 ModalShell / StudySidebar / MobileActionBar / DashboardContainer
+                DictView（词典页）/ DictEntryView（词典条目）/ useDictEntry（异步查词）
                 DailyPlanPanel / VocabBookView / SettingsModal / SyncSettingsPanel / BackupPanel
                 primitives / icons（lucide 唯一出口）/ format / speech / useStudyHotkeys
 
@@ -161,14 +167,16 @@ server/         后端（零依赖）：config / db（SQLite schema + 同步序�
 ## 5. 数据与合规
 
 - 数据包：`public/packs/IELTS/` v1.6.0（7 个分块 + lemma-map + manifest，1999 词 / 2957 义项；语料例句 1445 词 / 2616 条（另 300 词共 326 条人工撰写）；义项级同义替换 1574 词 / 2034 义项 / 4017 分组 / 7693 候选，其中 1657 条带义项级中文）
-- 来源：ECDICT（MIT）词条与变形、AWL 570 学术词族、Oxford 3000/5000
+- 全量词典：`public/dict/` v1.0.0（26 个首字母分片 + manifest，45,384 词 / 29,761 条变形 / 4.0 MB；最大片 478 KB；覆盖数据包 6005/6006 个可点词，唯一缺口 `swosh` 在 ECDICT 中无词条）
+- 来源：ECDICT（MIT）词条、变形、中文释义与词频序号（学习包与全量词典共用）、AWL 570 学术词族、Oxford 3000/5000
   词表成员判定、WordNet sense 频次——合成为 `senseWeight`；义项划分、英文释义、例句、
   同义集成员与官方子类框架来自 **Open English WordNet 2021（CC BY 4.0）**
 - **合规红线（PRD §12.4）**：`kind` 恒为 `ESTIMATED`，UI 一律标注「估计权重」；
   **禁止**任何「真题考频 / 历年出现次数」表述；门禁 `check-no-emoji` 之外的 T-19
   禁用词扫描由测试计划 `docs/04-TEST-PLAN.md` §5 落地
 - 质量报告：`docs/DATA-QUALITY.md`（ETL 自动生成，重新构建数据包时覆盖）；
-  同义替换单独出 `docs/DATA-QUALITY-SYNONYMS.md`（覆盖率 / 五态分布 / 标杆用例）
+  同义替换单独出 `docs/DATA-QUALITY-SYNONYMS.md`（覆盖率 / 五态分布 / 标杆用例）；
+  全量词典出 `docs/DATA-QUALITY-DICT.md`（规模 / 覆盖 / 收录口径 / 已知缺口）
 
 ## 6. 质量门禁（`npm run check`，6/6 通过）
 
@@ -187,6 +195,7 @@ server/         后端（零依赖）：config / db（SQLite schema + 同步序�
 | :-- | :-- | :-- | :-- |
 | G-5 | PRD US-08 标杆示例 `increase → surge / escalate / proliferate` 仍不产出 | 该示例无法用于验收 | 结构性限制：`increase` 不在 2000 词包内，且 WordNet 把这几个词分在各自独立的 synset，严格同义永远拿不到。若要做「同类学术近义词」需另开 ADR 做兄弟词分区（hypernym 系），不得复用 `synonymGroups` 语义 |
 | G-6 | 义项级中文释义覆盖有限：多数候选只有英文 gloss | 基础薄弱的学习者要读英文释义 | 候选中文只在该词义唯一时贴上（禁止词级最高频释义冒充义项级）；补齐需人工编写义项级中文表，按查询热度排期 |
+| G-7 | 全量词典只有词级中文（按词性分行），没有义项级对齐与例句 | 一词多义时看不出哪个释义对应当前语境 | 词典层定位是「查得到」，义项对齐仍由学习包的 `sense.enDef` / `synonymGroups` 承担；若要做义项级中文，与 G-6 同源，需要人工词表 |
 
 已闭环（留档）：**G-1**（US-03 缺 `→ / Enter / R / F` 四键）与 **G-2**（US-05.2 形近词不可点击跳转）已于 2026-10-21 交付（OD-21 / OD-22 关闭，SPEC §11 D-3 / D-4 同步）；**G-3**（US-08 同义数据空）已于 2026-10-22 以义项级重建关闭（ADR-006 取代 ADR-005，数据包 v1.6.0）；**G-4** 架构文档偏差裁定见 `02-ARCHITECTURE.md §0.4`（React 19 / Tailwind 4 升级列 P1）。
 

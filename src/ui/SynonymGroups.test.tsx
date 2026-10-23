@@ -63,12 +63,13 @@ describe('SynonymGroups · 义项级同义替换 (US-08)', () => {
     expect(screen.getByText('该义项语料里它带 in，不带 of')).toBeTruthy();
   });
 
-  it('库内候选可跳词条，库外候选只是文本（不给出虚假入口）', () => {
+  it('库内与库外候选都可跳查（库外走全量词典兜底）', () => {
     const opened: string[] = [];
     render(<SynonymGroups groups={groups} onOpenWord={(lemma) => opened.push(lemma)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'comprise' }));
-    expect(opened).toEqual(['comprise']);
-    expect(screen.queryByRole('button', { name: 'dwell' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '查看 comprise 的释义' }));
+    // 夹具里 dwell 同时出现在两个义项组，取第一个即可
+    fireEvent.click(screen.getAllByRole('button', { name: '查看 dwell 的释义' })[0]!);
+    expect(opened).toEqual(['comprise', 'dwell']);
   });
 
   it('没有同义数据时明确说明，而不是渲染空分组', () => {

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { ExamCode } from '../domain/types';
 import type { PackWord } from '../content/packVerifier';
+import { fullDictionary, type FullDictionary } from '../content/dict';
 import { ModalShell } from './ModalShell';
 import { Button, ProgressBar } from './primitives';
 import { ICON_SIZE, ICON_STROKE, Volume2 } from './icons';
 import { weightLabel } from './format';
+import { DictEntryView } from './DictEntryView';
+import { useDictEntry } from './useDictEntry';
 
 /** 点词即查（PRD 5.8 / S-02）：例句里点任意单词 → 词条摘要 → 加入生词本。
- * 词库未收录时允许创建自定义词条（含来源例句），加入后生成新卡。 */
+ * 数据包未收录时回落到全量词典；两者都没有才允许手填释义建自定义词条。 */
 
 export interface LookupModalProps {
   open: boolean;
@@ -19,13 +22,16 @@ export interface LookupModalProps {
   onClose: () => void;
   onPlay: () => void;
   onAdd: (cn: string) => Promise<void>;
+  /** 测试可注入；默认用应用内共享词典 */
+  dict?: FullDictionary;
 }
 
-export function LookupModal({ open, surface, word, exam, starred, sourceSentence, onClose, onPlay, onAdd }: LookupModalProps) {
+export function LookupModal({ open, surface, word, exam, starred, sourceSentence, onClose, onPlay, onAdd, dict = fullDictionary }: LookupModalProps) {
   const [cnDraft, setCnDraft] = useState('');
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dictState = useDictEntry(surface, open && !word, dict);
 
   useEffect(() => {
     if (!open) return;
@@ -34,6 +40,13 @@ export function LookupModal({ open, surface, word, exam, starred, sourceSentence
     setAdded(starred);
     setError(null);
   }, [open, surface, starred]);
+
+  // 词典命中时把首个义项带进「自定义词条」的释义框，省一次手输
+  useEffect(() => {
+    if (dictState.status === 'done' && dictState.entry && !cnDraft) {
+      setCnDraft(dictState.entry.senses[0]?.cn ?? '');
+    }
+  }, [dictState, cnDraft]);
 
   async function submit() {
     setAdding(true);
@@ -67,9 +80,9 @@ export function LookupModal({ open, surface, word, exam, starred, sourceSentence
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-word text-2xl font-emphasize text-fg">{word?.lemma ?? surface}</span>
-        {word?.phoneticUk || word?.phoneticUs ? (
-          <span className="font-word text-sm text-muted">/{word.phoneticUk || word.phoneticUs}/</span>
+        <span className="font-word text-2xl font-emphasize text-fg">{word?.lemma ?? dictState.entry?.lemma ?? surface}</span>
+        {word?.phoneticUk || word?.phoneticUs || dictState.entry?.phonetic ? (
+          <span className="font-word text-sm text-muted">/{word?.phoneticUk || word?.phoneticUs || dictState.entry?.phonetic}/</span>
         ) : null}
         <button
           type="button"
@@ -103,10 +116,19 @@ export function LookupModal({ open, surface, word, exam, starred, sourceSentence
             );
           })}
         </ul>
+      ) : dictState.status === 'loading' ? (
+        <p className="py-4 text-center text-sm text-muted">正在查词典…</p>
+      ) : dictState.entry ? (
+        <DictEntryView entry={dictState.entry} compact />
       ) : (
         <div className="flex flex-col gap-2 rounded-md bg-warm px-3 py-3">
-          <p className="text-sm text-fg-2">词库未收录「{surface}」。</p>
-          <p className="text-xs text-muted">加入生词本会创建自定义词条，并按计划进入新卡队列。可补一条中文释义便于回忆。</p>
+          <p className="text-sm text-fg-2">词库与词典均未收录「{surface}」。</p>
+        </div>
+      )}
+
+      {!word ? (
+        <div className="flex flex-col gap-2 rounded-md bg-warm px-3 py-3">
+          <p className="text-sm text-fg-2">加入生词本会创建自定义词条，并按计划进入新卡队列。可补一条中文释义便于回忆。</p>
           <input
             value={cnDraft}
             onChange={(e) => setCnDraft(e.target.value)}
@@ -115,7 +137,7 @@ export function LookupModal({ open, surface, word, exam, starred, sourceSentence
             className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-fg placeholder:text-meta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
         </div>
-      )}
+      ) : null}
 
       {sourceSentence ? (
         <p className="rounded-md bg-sunken px-3 py-2 text-xs leading-snug text-muted">

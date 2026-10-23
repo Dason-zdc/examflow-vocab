@@ -102,7 +102,8 @@ describe('学习页新增交互', () => {
     // 1. 点词即查：例句单词可点击，未收录词可加入生词本
     fireEvent.click(screen.getByRole('button', { name: '查询 comes' }));
     await waitFor(() => expect(screen.getByRole('dialog', { name: '点词即查' })).toBeTruthy(), { timeout: 5000 });
-    expect(screen.getByText(/词库未收录/)).toBeTruthy();
+    // 词包未收录的词仍可建自定义词条；释义框与词典兜底互不影响
+    await waitFor(() => expect(screen.getByLabelText('中文释义')).toBeTruthy(), { timeout: 5000 });
     fireEvent.click(screen.getByRole('button', { name: '加入生词本' }));
     await waitFor(() => expect(screen.getByRole('button', { name: '已在生词本' })).toBeTruthy(), { timeout: 5000 });
     fireEvent.click(screen.getByRole('button', { name: '关闭' }));

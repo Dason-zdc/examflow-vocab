@@ -66,3 +66,12 @@ export function daysToExamLabel(days: number | null): string {
   if (days === 0) return '今天考试';
   return `距考试 ${days} 天`;
 }
+
+/** 词典词频序号 → 学习者的可读标签（不承诺考试频次，只描述语料位置） */
+export function rankLabel(rank: number): string {
+  if (!rank) return '词频未知';
+  if (rank <= 3000) return '高频词';
+  if (rank <= 12000) return '中频词';
+  if (rank <= 30000) return '中低频词';
+  return '低频词';
+}
