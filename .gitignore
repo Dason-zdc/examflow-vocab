@@ -27,3 +27,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# 本机部署密钥（EXAMFLOW_SECRET），禁止入库
+.deploy-secret
