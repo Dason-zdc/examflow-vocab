@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { FullDictionary } from '../content/dict';
 import { sha256Hex } from '../content/packVerifier';
 import { WordPreviewModal } from './WordPreviewModal';
 import { LookupModal } from './LookupModal';
-import { SynonymGroups } from './SynonymGroups';
 
 afterEach(() => cleanup());
 
@@ -72,27 +71,3 @@ describe('LookupModal · 词典释义可带入生词本', () => {
   });
 });
 
-describe('SynonymGroups · 库外候选也可查', () => {
-  it('不再按 inPack 禁用点击', async () => {
-    const onOpenWord = vi.fn();
-    render(
-      <SynonymGroups
-        onOpenWord={onOpenWord}
-        groups={[
-          {
-            synset: 'oewn-test-v',
-            gloss: 'a restraint that confines',
-            candidates: [
-              { lemma: 'trammel', pos: 'n.', status: 'DIRECT', inPack: false, cn: '束缚' },
-              { lemma: 'bond', pos: 'n.', status: 'DIRECT', inPack: true },
-            ],
-          },
-        ]}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: '查看 trammel 的释义' }));
-    expect(onOpenWord).toHaveBeenCalledWith('trammel');
-    fireEvent.click(screen.getByRole('button', { name: '查看 bond 的释义' }));
-    expect(onOpenWord).toHaveBeenCalledWith('bond');
-  });
-});

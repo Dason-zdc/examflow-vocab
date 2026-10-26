@@ -30,3 +30,10 @@ desktop.ini
 
 # 本机部署密钥（EXAMFLOW_SECRET），禁止入库
 .deploy-secret
+
+# AI 服务密钥（OPENROUTER_API_KEY 等），禁止入库
+server/.env.local
+
+# 本地工具与缓存
+.agents/
+__pycache__/

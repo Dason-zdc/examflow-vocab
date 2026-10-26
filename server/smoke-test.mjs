@@ -16,6 +16,7 @@ const PORT = Number(process.env.SMOKE_PORT ?? 8799);
 const BASE = `http://localhost:${PORT}/api/v1`;
 const ORIGIN = `http://localhost:${PORT}`;
 const DB_PATH = path.join(os.tmpdir(), `examflow-smoke-${Date.now()}.db`);
+const MORPH_OVERRIDES = path.join(os.tmpdir(), `examflow-morph-overrides-${Date.now()}.json`);
 const USERNAME = `smoke_${Date.now().toString(36)}`;
 const PASSWORD = 'password123';
 
@@ -69,7 +70,7 @@ function cardChange(v, reps, deleted = false) {
 before(async () => {
   child = spawn(process.execPath, ['--experimental-sqlite', 'server/server.js'], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(PORT), EXAMFLOW_DB: DB_PATH },
+    env: { ...process.env, PORT: String(PORT), EXAMFLOW_DB: DB_PATH, MORPH_OVERRIDES: MORPH_OVERRIDES, OPENROUTER_API_KEY: '', AI_API_KEY: '' },
     stdio: 'ignore',
   });
   await waitHealth();
@@ -83,6 +84,11 @@ after(async () => {
     } catch {
       /* 忽略清理失败 */
     }
+  }
+  try {
+    fs.unlinkSync(MORPH_OVERRIDES);
+  } catch {
+    /* 忽略清理失败 */
   }
 });
 
@@ -180,3 +186,32 @@ test('静态资源缓存策略：/packs/ 不缓存，其它资源保持长缓存
   assert.equal(icon.status, 200);
   assert.match(icon.headers.get('cache-control') ?? '', /max-age=3600/);
 });
+
+test('问 AI 核对：未配置 Key 时免登录也返回 503（不会 401）', async () => {
+  const res = await api('/morph/ask', { method: 'POST', token, body: { word: 'corporate' } });
+  assert.equal(res.status, 503);
+  assert.equal(res.body.error.code, 'ai_not_configured');
+});
+
+test('问 AI 核对：误拆黑名单词直接 422 拒绝', async () => {
+  const res = await api('/morph/ask', { method: 'POST', body: { word: 'dice' } });
+  assert.equal(res.status, 422);
+  assert.equal(res.body.error.code, 'morph_blocked');
+});
+
+test('词源覆盖层接口返回空表', async () => {
+  const res = await api('/morph/overrides');
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.overrides, {});
+});
+
+test('AI 核对日志接口返回数组（含 503/422 的失败记录）', async () => {
+  const res = await api('/morph/log');
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(res.body.log));
+  assert.ok(res.body.log.length >= 2);
+  const codes = res.body.log.map((r) => r.errorCode);
+  assert.ok(codes.includes('ai_not_configured'));
+  assert.ok(codes.includes('morph_blocked'));
+});
+>>>>>>> a0ef6aa (feat(morph): 词根词缀拆解全量落地（ADR-009）+ AI 核对渠道与日志页)

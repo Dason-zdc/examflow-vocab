@@ -2,7 +2,7 @@
 
 > 角色：team-lead（测试契约）
 > 日期：2026-10-21
-> 状态：**254 项自动化用例全绿**（40 个文件），6/6 架构门禁通过，tsc 0 错误，E2E 冒烟 9/9（`scripts/e2e/smoke.py`，TG-4 已闭环）。
+> 状态：**296 项自动化用例全绿**（45 个文件，2026-10-26 实测），6/6 架构门禁通过，tsc 0 错误，E2E 冒烟 9/9（`scripts/e2e/smoke.py`，TG-4 已闭环）。
 > 增量：2026-10-22 义项级同义 +22 例、2026-10-23 全量词典 +20 例；§2 的逐文件清单保留 2026-10-21 基线，增量见 §8。
 > 上游：`docs/01-PRD.md` 各 US 的 AC；`docs/SPEC.md` §10/§11。
 
@@ -216,7 +216,7 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 
 ## 7. 退出准则（发版门）
 
-- [x] `npm test` 254/254 通过（40 文件；含 P0-1 回归 ExamFlowApp.test.tsx、快捷键 14 例、同义 22 例、词典 20 例）
+- [x] `npm test` 296/296 通过（45 文件；含 P0-1 回归 ExamFlowApp.test.tsx、快捷键 14 例、同义 22 例、词典 20 例）
 - [x] `npm run check` 6/6 通过
 - [x] `npm run typecheck` 0 错误
 - [x] `npm run build` 成功且 SW 预缓存 20 条目
@@ -230,9 +230,29 @@ statStrip / stateLabel / kindLabel / formatDueLabel / formatMonthDay。
 
 | 文件 | 用例数 | 覆盖 |
 | :-- | --: | :-- |
-| `src/ui/SynonymGroups.test.tsx` | 7 | 义项分组渲染 / 五态徽章 / 改写模板 / 库内外候选均可点 / 空态 |
+| ~~`src/ui/SynonymGroups.test.tsx`~~ | — | 已移除：ADR-009 收敛同义展示后，相关断言并入 `CardBackBlocks.test.tsx` |
 | `src/content/synonymPack.test.ts` | 7 | 数据包回归：`consist of` 必产出 `comprise`、`consist in` 不串组、候选中文绑定义项 |
 | `src/content/packVerifier.test.ts`（新增 8 条） | 8 | 义项级同义约束：synset / gloss / 五态 / 非本词 / 改写模板 / 冲突理由 / 中文不得多义合并 |
 | `src/content/dict.test.ts` | 13 | 精确查词 / 不规则变形 / 跨字母变形 / 后缀还原 / 查不到返回 null / 前缀搜索 / 分片浏览 / manifest 失败降级 / sha256 拒绝 / 释义切行 |
-| `src/ui/DictLookup.test.tsx` | 4 | 弹窗未收录时回落词典 / 两边都没有才提示 / 词典释义带入自定义词条 / 库外候选可点 |
+| `src/ui/DictLookup.test.tsx` | 3 | 弹窗未收录时回落词典 / 两边都没有才提示 / 词典释义带入自定义词条 / 库外候选可点 |
 | `src/ui/DictView.test.tsx` | 3 | A–Z 浏览与切分片 / 详情与加入生词本 / 词包内词不重复加入 |
+| `src/content/morphology.test.ts` | 16 | 词素切分：`unpredictable` 基准例 / dict 同族 / 多后缀 / 静音 e / 变体归一 / 直译否定包裹 / `present`、`city`、`beautiful` 拒绝拆解 / 自动拆分不上卡 / 组合后缀 `identification` / 直译不叠「的」/ `atoms` 覆盖短义 / 来源标注 |
+| `src/content/rootFamilies.test.ts` | 3 | 织网索引：dict 家族含用户示例同根词 / 成员公式含中文括号 / 体积 < 300 KB |
+| `src/ui/MorphologyCard.test.tsx` | 10 | 一行记忆链与 `?` 揭示 / 只列已学同根词（≤3）/ 拆解明细 / 来源徽章 / 自动拆分不渲染 / 收起态 / 词根库入口 |
+| `src/ui/CardBackBlocks.test.tsx` | 15 | 易混词：高危对 / 线索对调 / 无命中不渲染 / lapses 上限 / 跳查；雅思改写：按义项匹配 / 只留「需改写」/ REWRITE 回退 / 无数据不渲染 |
+| `src/ui/AppHeader.test.tsx` | 3 | 移动端菜单展开四项 / 选中后回调并关闭 / Esc 关闭 / aria-current |
+| `src/ui/RootsView.test.tsx` | 4 | 家族列表与规模排序 / 选中家族展示公式 / 按中文义与成员搜索 / 加入生词本与词库内去重 |
+
+## 9. 全量快照（2026-10-26 实测：45 文件 / 296 用例）
+
+由 `npx vitest run --reporter=json` 逐文件统计。§2 / §8 为历史清单，数字以本节为准。
+
+| 层 | 文件（用例数） | 小计 |
+| :-- | :-- | --: |
+| domain | clock 7 / planner 13 / reviewCommitter 10 / scheduler 13 / sessionQueue 13 / settings 4 / spelling 4 | 64 |
+| content | dict 13 / dictionary 13 / morphology 16 / packLoader 7 / packShipped 3 / packVerifier 23 / rootFamilies 3 / synonymPack 7 | 85 |
+| storage | backupService 6 / db 6 | 12 |
+| app | dashboard 2 / examTip 3 / onboardingUseCase 6 / placement 3 / reviewUseCase 4 / sessionBuilder 9 / StudySessionProvider 6 / tutor 4 / sync/syncEngine 8 | 45 |
+| ui | AppHeader 3 / CardBackBlocks 15 / CardBackBlocks.realdata 5 / CardBackP0 2 / CardBackP2 4 / DictLookup 3 / DictView 3 / ErrorBoundary 3 / ExamFlowApp 2 / format 9 / LegacyAppBoot 1 / LegacySettings 2 / MorphologyCard 10 / RootsView 4 / sentenceSource 3 / StudyFeatures 1 / SyncSettingsPanel 4 / useStudyHotkeys 14 | 88 |
+| test | complianceScan（T-19 合规扫描）2 | 2 |
+| **合计** | **45 文件** | **296** |

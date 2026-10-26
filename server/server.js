@@ -3,17 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PORT, staticDir, packsDir } from './config.js';
 import { db } from './db.js';
-import {
-  ApiError,
-  authenticate,
-  getPack,
-  listPacks,
-  login,
-  me,
-  register,
-  syncPull,
-  syncPush,
-} from './routes.js';
+import { ApiError, authenticate, getPack, listPacks, login, me, register, syncPull, syncPush } from './routes.js';
+import { morphAskHandler, morphLogHandler, morphOverridesHandler } from './morph-ai.js';
 
 const MAX_BODY = 8 * 1024 * 1024; // 8MB：首轮整库推送 + 数据包元数据
 
@@ -48,6 +39,10 @@ const ROUTES = [
   { method: 'GET', re: /^\/api\/v1\/packs\/([A-Za-z0-9_-]+)$/, handler: (r, b, c, m) => getPack(m[1]), auth: false },
   { method: 'POST', re: /^\/api\/v1\/sync$/, handler: (r, b, c) => syncPush(c.userId, b), auth: true },
   { method: 'GET', re: /^\/api\/v1\/sync$/, handler: (r, b, c) => syncPull(c.userId, c.query.cursor), auth: true },
+  // 问 AI 核对：免登录（自建单人实例 + 全局 IP 限流兜底）；模型 Key 在服务端，泄露面 = 部署者自己的额度
+  { method: 'POST', re: /^\/api\/v1\/morph\/ask$/, handler: (r, b) => morphAskHandler(b), auth: false },
+  { method: 'GET', re: /^\/api\/v1\/morph\/overrides$/, handler: () => morphOverridesHandler(), auth: false },
+  { method: 'GET', re: /^\/api\/v1\/morph\/log$/, handler: (r, b, c) => morphLogHandler(c.query, c.headers), auth: false },
 ];
 
 // ---------- 静态资源 ----------
@@ -199,9 +194,14 @@ const server = http.createServer(async (req, res) => {
 
     const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : await readBody(req);
     const match = route.re.exec(pathname);
-    const result = route.handler(req, body, ctx, match);
+    const result = await route.handler(req, body, ctx, match);
 
     if (!res.headersSent) {
+      if (typeof result.html === 'string') {
+        res.writeHead(result.status ?? 200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(result.html);
+        return;
+      }
       res.writeHead(result.status ?? 200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result.body ?? { ok: true }));
     }

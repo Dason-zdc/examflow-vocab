@@ -1,282 +1,377 @@
+import { AFFIX_LEXICON, findRoot, getCurated, type AffixEntry, type CuratedWord, type MorphKind } from './affixLexicon';
+
 /**
- * 词缀自动拆分（兜底）：数据包只有约三分之一的词带人工词根，
- * 其余词按常见前缀 / 后缀 / 词根做保守拆分，并在 UI 上明确标注「自动拆分」。
+ * 词素切分：把长单词拆成「前缀* + 词根 + 后缀*」，供背面的四步记忆法使用。
  *
- * 只做 2 个以上成分且能落到已知词根/前后缀的组合，避免给任意单词硬凑词源。
+ * 设计取舍（为什么不是「见到词根就拆」）：
+ * - 只在词素边界上拆：每个字母都必须被某个成分解释（允许词尾不发音的 e），
+ *   否则 `city` 会被拆成 cit(唤起) + y，属于典型误伤。
+ * - 词根是必需成分。只有前后缀、没有词根时不展示拆解，避免把任意单词硬凑成公式。
+ * - 顺序受约束：前缀只能在词首、后缀只能在词根之后，最多 2 个前缀 / 3 个后缀。
+ * - 允许两个词根相连的只有 bene / male / ver 这类组合词根（benediction、verdict）。
+ * - 打分偏向更长的词根与更少的成分；同分时取成分更少、词根更长的方案。
+ * - 所有成分都来自人工校订词表（affix-lexicon.json），中文释义不由模型生成。
+ *
+ * 输出分两档口径：CURATED = 人工校订整词；AUTO = 按上表自动切分（UI 必须标注）。
  */
 
-interface Affix {
-  text: string;
-  meaning: string;
-}
-
-const PREFIXES: Affix[] = [
-  { text: 'counter', meaning: '反对、相反' },
-  { text: 'inter', meaning: '在…之间' },
-  { text: 'trans', meaning: '跨越、转变' },
-  { text: 'circum', meaning: '环绕' },
-  { text: 'contra', meaning: '相反' },
-  { text: 'super', meaning: '在上、超过' },
-  { text: 'under', meaning: '在下、不足' },
-  { text: 'micro', meaning: '微小' },
-  { text: 'macro', meaning: '宏大' },
-  { text: 'multi', meaning: '多' },
-  { text: 'semi', meaning: '半' },
-  { text: 'anti', meaning: '反对' },
-  { text: 'fore', meaning: '在前' },
-  { text: 'over', meaning: '过度' },
-  { text: 'post', meaning: '在后' },
-  { text: 'pre', meaning: '在前' },
-  { text: 'pro', meaning: '向前' },
-  { text: 'sub', meaning: '在下' },
-  { text: 'sup', meaning: '在下' },
-  { text: 'sur', meaning: '在上、超过' },
-  { text: 'ultra', meaning: '超出' },
-  { text: 'auto', meaning: '自己' },
-  { text: 'extra', meaning: '额外' },
-  { text: 'hyper', meaning: '过度' },
-  { text: 'hypo', meaning: '不足、下' },
-  { text: 'intra', meaning: '内部' },
-  { text: 'mono', meaning: '单一' },
-  { text: 'poly', meaning: '多' },
-  { text: 'tele', meaning: '远' },
-  { text: 'bio', meaning: '生命' },
-  { text: 'geo', meaning: '地' },
-  { text: 'co', meaning: '共同' },
-  { text: 'col', meaning: '共同' },
-  { text: 'com', meaning: '共同' },
-  { text: 'con', meaning: '共同、加强' },
-  { text: 'cor', meaning: '共同' },
-  { text: 'de', meaning: '向下、去除' },
-  { text: 'dis', meaning: '分开、否定' },
-  { text: 'di', meaning: '分开' },
-  { text: 'ex', meaning: '向外' },
-  { text: 'e', meaning: '向外' },
-  { text: 'im', meaning: '进入、否定' },
-  { text: 'in', meaning: '进入、否定' },
-  { text: 'il', meaning: '否定' },
-  { text: 'ir', meaning: '否定' },
-  { text: 'mis', meaning: '错误' },
-  { text: 'non', meaning: '非' },
-  { text: 'ob', meaning: '反对、朝向' },
-  { text: 'per', meaning: '贯穿' },
-  { text: 're', meaning: '回、再' },
-  { text: 'un', meaning: '否定' },
-  { text: 'up', meaning: '向上' },
-  { text: 'out', meaning: '超出、向外' },
-  { text: 'en', meaning: '使…' },
-  { text: 'em', meaning: '使…' },
-  { text: 'ad', meaning: '朝向' },
-  { text: 'ac', meaning: '朝向' },
-  { text: 'af', meaning: '朝向' },
-  { text: 'ag', meaning: '朝向' },
-  { text: 'al', meaning: '朝向' },
-  { text: 'ap', meaning: '朝向' },
-  { text: 'ar', meaning: '朝向' },
-  { text: 'as', meaning: '朝向' },
-  { text: 'at', meaning: '朝向' },
-];
-
-const SUFFIXES: Affix[] = [
-  { text: 'ability', meaning: '能力、性质' },
-  { text: 'ation', meaning: '名词后缀：行为/结果' },
-  { text: 'ition', meaning: '名词后缀：行为/结果' },
-  { text: 'ology', meaning: '学科' },
-  { text: 'ment', meaning: '名词后缀：行为/结果' },
-  { text: 'ness', meaning: '名词后缀：性质' },
-  { text: 'ance', meaning: '名词后缀：状态' },
-  { text: 'ence', meaning: '名词后缀：状态' },
-  { text: 'ship', meaning: '名词后缀：关系/身份' },
-  { text: 'tion', meaning: '名词后缀：行为/结果' },
-  { text: 'sion', meaning: '名词后缀：行为/结果' },
-  { text: 'able', meaning: '可…的' },
-  { text: 'ible', meaning: '可…的' },
-  { text: 'ful', meaning: '充满…的' },
-  { text: 'less', meaning: '无…的' },
-  { text: 'ous', meaning: '多…的' },
-  { text: 'ive', meaning: '…的' },
-  { text: 'ity', meaning: '名词后缀：性质' },
-  { text: 'ure', meaning: '名词后缀：行为/结果' },
-  { text: 'ant', meaning: '…的/…者' },
-  { text: 'ent', meaning: '…的/…者' },
-  { text: 'ary', meaning: '…的/场所' },
-  { text: 'ory', meaning: '…的/场所' },
-  { text: 'ism', meaning: '主义、现象' },
-  { text: 'ist', meaning: '…者' },
-  { text: 'ize', meaning: '使…化' },
-  { text: 'ise', meaning: '使…化' },
-  { text: 'ify', meaning: '使…' },
-  { text: 'fy', meaning: '使…' },
-  { text: 'ate', meaning: '动词/形容词后缀' },
-  { text: 'al', meaning: '…的' },
-  { text: 'ic', meaning: '…的' },
-  { text: 'ical', meaning: '…的' },
-  { text: 'ly', meaning: '副词/形容词后缀' },
-  { text: 'er', meaning: '人/物' },
-  { text: 'or', meaning: '人/物' },
-  { text: 'ing', meaning: '动名词/进行' },
-  { text: 'ed', meaning: '过去/被动' },
-];
-
-const ROOTS: Affix[] = [
-  { text: 'spect', meaning: '看' },
-  { text: 'spic', meaning: '看' },
-  { text: 'vis', meaning: '看' },
-  { text: 'vid', meaning: '看' },
-  { text: 'port', meaning: '携带' },
-  { text: 'dict', meaning: '说' },
-  { text: 'duc', meaning: '引导' },
-  { text: 'duct', meaning: '引导' },
-  { text: 'ject', meaning: '投掷' },
-  { text: 'scrib', meaning: '写' },
-  { text: 'script', meaning: '写' },
-  { text: 'cred', meaning: '相信' },
-  { text: 'fer', meaning: '带来、承受' },
-  { text: 'mit', meaning: '送' },
-  { text: 'miss', meaning: '送' },
-  { text: 'pos', meaning: '放置' },
-  { text: 'pon', meaning: '放置' },
-  { text: 'tract', meaning: '拉' },
-  { text: 'vert', meaning: '转' },
-  { text: 'vers', meaning: '转' },
-  { text: 'voc', meaning: '声音、召唤' },
-  { text: 'vok', meaning: '声音、召唤' },
-  { text: 'chron', meaning: '时间' },
-  { text: 'graph', meaning: '写、记录' },
-  { text: 'log', meaning: '言说、学科' },
-  { text: 'man', meaning: '手' },
-  { text: 'ped', meaning: '脚' },
-  { text: 'pod', meaning: '脚' },
-  { text: 'phon', meaning: '声音' },
-  { text: 'photo', meaning: '光' },
-  { text: 'sens', meaning: '感觉' },
-  { text: 'sent', meaning: '感觉' },
-  { text: 'struct', meaning: '建造' },
-  { text: 'therm', meaning: '热' },
-  { text: 'aqua', meaning: '水' },
-  { text: 'aud', meaning: '听' },
-  { text: 'bene', meaning: '好' },
-  { text: 'mal', meaning: '坏' },
-  { text: 'mort', meaning: '死' },
-  { text: 'nat', meaning: '出生' },
-  { text: 'path', meaning: '感情、疾病' },
-  { text: 'phil', meaning: '爱' },
-  { text: 'phob', meaning: '恐惧' },
-  { text: 'poli', meaning: '城市' },
-  { text: 'rupt', meaning: '破裂' },
-  { text: 'sect', meaning: '切' },
-  { text: 'serv', meaning: '服务、保存' },
-  { text: 'sol', meaning: '太阳' },
-  { text: 'son', meaning: '声音' },
-  { text: 'spir', meaning: '呼吸' },
-  { text: 'temp', meaning: '时间' },
-  { text: 'ten', meaning: '握住' },
-  { text: 'tain', meaning: '握住' },
-  { text: 'terr', meaning: '土地' },
-  { text: 'val', meaning: '价值' },
-  { text: 'ven', meaning: '来' },
-  { text: 'vent', meaning: '来' },
-  { text: 'ver', meaning: '真实' },
-  { text: 'viv', meaning: '活' },
-  { text: 'vit', meaning: '生命' },
-  { text: 'form', meaning: '形状' },
-  { text: 'fac', meaning: '做' },
-  { text: 'fact', meaning: '做' },
-  { text: 'fect', meaning: '做' },
-  { text: 'fid', meaning: '信任' },
-  { text: 'gen', meaning: '产生、种类' },
-  { text: 'grad', meaning: '步、等级' },
-  { text: 'gress', meaning: '走' },
-  { text: 'lab', meaning: '劳动' },
-  { text: 'lect', meaning: '选择、读' },
-  { text: 'leg', meaning: '读、法' },
-  { text: 'loc', meaning: '地方' },
-  { text: 'lum', meaning: '光' },
-  { text: 'mar', meaning: '海' },
-  { text: 'mem', meaning: '记忆' },
-  { text: 'meter', meaning: '测量' },
-  { text: 'min', meaning: '小' },
-  { text: 'mov', meaning: '移动' },
-  { text: 'mot', meaning: '移动' },
-  { text: 'nom', meaning: '名字、法则' },
-  { text: 'norm', meaning: '标准' },
-  { text: 'opt', meaning: '看、选择' },
-  { text: 'ord', meaning: '顺序' },
-  { text: 'part', meaning: '部分' },
-  { text: 'pass', meaning: '通过、感情' },
-  { text: 'pend', meaning: '悬挂、称量' },
-  { text: 'pens', meaning: '称量、思考' },
-  { text: 'plic', meaning: '折叠' },
-  { text: 'ply', meaning: '折叠' },
-  { text: 'pop', meaning: '人民' },
-  { text: 'press', meaning: '压' },
-  { text: 'prim', meaning: '第一' },
-  { text: 'quir', meaning: '寻求' },
-  { text: 'quis', meaning: '寻求' },
-  { text: 'reg', meaning: '统治、规则' },
-  { text: 'rupt', meaning: '断裂' },
-  { text: 'sci', meaning: '知道' },
-  { text: 'sequ', meaning: '跟随' },
-  { text: 'sign', meaning: '标记' },
-  { text: 'simil', meaning: '相似' },
-  { text: 'soci', meaning: '同伴' },
-  { text: 'stat', meaning: '站立、状态' },
-  { text: 'tend', meaning: '伸展' },
-  { text: 'tens', meaning: '伸展' },
-  { text: 'tract', meaning: '拉' },
-  { text: 'uni', meaning: '一' },
-  { text: 'urb', meaning: '城市' },
-  { text: 'verb', meaning: '词、话' },
-  { text: 'via', meaning: '路' },
-  { text: 'vinc', meaning: '征服' },
-  { text: 'volv', meaning: '卷、转' },
-];
-
-export interface MorphologySplit {
-  formula: string;
+export interface MorphPart {
+  kind: MorphKind;
+  /** 词中实际出现的字母（变体命中时与 key 不同，如 dic → dict） */
+  form: string;
+  /** 词表主条目（变体归一） */
+  key: string;
+  cn: string;
+  /**
+   * 一行记忆链用的短义，如「站」「一起」。
+   * 与 cn 分开是必须的：cn 是教学义（含「…」「的」这类占位），直接拼接会产出
+   * 「使标记的的」这种叠字；短义来自词表第 3 列，再由人工 atoms 覆盖。
+   */
+  gloss: string;
   origin: string;
-  /** 恒为自动拆分：UI 必须如实标注，不能冒充人工词根 */
-  auto: true;
+  sourceWord: string;
+  start: number;
+  end: number;
+  variant: boolean;
 }
 
-function longestMatch(word: string, table: Affix[], mode: 'prefix' | 'suffix'): Affix | null {
-  const sorted = [...table].sort((a, b) => b.text.length - a.text.length);
-  for (const item of sorted) {
-    if (mode === 'prefix' && word.startsWith(item.text) && word.length - item.text.length >= 3) return item;
-    if (mode === 'suffix' && word.endsWith(item.text) && word.length - item.text.length >= 3) return item;
+export interface Morphology {
+  word: string;
+  parts: MorphPart[];
+  root: MorphPart;
+  /** 第 2 步溯源用的成分链（中文短义） */
+  chain: string[];
+  /** 第 3 步机械直译（只按成分拼接，不等于词典释义） */
+  literal: string;
+  /** 一行记忆链的中间推演，如「站到一起」；人工条目的 literal 就是推演句 */
+  bridge: string;
+  /** 词尾不发音的 e（microscope → micro+scop+e） */
+  silentE: boolean;
+  confidence: 'CURATED' | 'AUTO';
+  /** 记忆链的撰写来源；AUTO 无人工背书，不上学习卡 */
+  authoredBy: 'HUMAN' | 'AI_DRAFTED' | 'AI_REVIEWED' | 'NONE';
+  /**
+   * 是否允许出现在学习卡背面。
+   * 口径：自动拆分只进词根库；只有人工（或 AI 起草 + 人审）的记忆链才上卡。
+   */
+  showOnCard: boolean;
+  /** 自动拆分中证据较强的一档（词根 ≥4 字母、成分齐全） */
+  strong: boolean;
+  note: string;
+  /** 词义演变链（仅 curated 有）：从词根本义到当前词义的逐步推演 */
+  story?: string[];
+}
+
+/**
+ * 最短可拆长度（2026-10-26 红线两度调整：6 → 5 → 4）。
+ * 拆分可靠性由「词素边界全覆盖 + 人工 curated 优先」保证，而不是一刀切词长；
+ * 误拆词（dice/mine/sale 等假同源）走 blocked 名单逐词拦截，
+ * cite/excite「唤起」族与 civitas「公民」族的同形冲突也用 blocked 处理。
+ * 3 字母以下仍拒绝。
+ */
+const MIN_WORD = 4;
+const MAX_WORD = 24;
+const MAX_PREFIXES = 2;
+const MAX_SUFFIXES = 3;
+const MAX_AFFIX_LEN = 12;
+
+/** un-/non-/il-/ir- 无歧义地表否定；in-/im- 另可表「向内」，只在人工校订词里按否定处理 */
+const HARD_NEGATIONS = new Set(['un', 'non', 'il', 'ir']);
+
+/** 两字母后缀的成立条件：词够长，且词根够长 */
+const SHORT_SUFFIX_RULES: Record<string, { word: number; root: number }> = {
+  al: { word: 6, root: 3 },
+  ic: { word: 6, root: 3 },
+  fy: { word: 6, root: 3 },
+  or: { word: 6, root: 3 },
+  y: { word: 7, root: 4 },
+};
+
+interface Draft {
+  kind: MorphKind;
+  entry: AffixEntry;
+  form: string;
+  start: number;
+  end: number;
+}
+
+interface State {
+  pos: number;
+  phase: 0 | 1 | 2;
+  score: number;
+  parts: Draft[];
+  roots: number;
+}
+
+function entryFor(kind: MorphKind, form: string): AffixEntry | undefined {
+  if (kind === 'PREFIX') return AFFIX_LEXICON.prefixes.get(form);
+  if (kind === 'SUFFIX') return AFFIX_LEXICON.suffixes.get(form);
+  return findRoot(form);
+}
+
+function draftsAt(word: string, pos: number, kind: MorphKind): Draft[] {
+  const out: Draft[] = [];
+  const max = Math.min(MAX_AFFIX_LEN, word.length - pos);
+  // e- 是 ex- 的弱化形式（evidence / emerge），只在词首、且词足够长时单独成前缀
+  const min = kind === 'PREFIX' && pos === 0 && word[0] === 'e' && word.length >= 8 ? 1 : 2;
+  for (let len = max; len >= min; len -= 1) {
+    const form = word.slice(pos, pos + len);
+    const entry = kind === 'ROOT' ? findRoot(form) : entryFor(kind, form);
+    if (!entry) continue;
+    if (kind === 'ROOT' && len < 3) continue;
+    out.push({ kind, entry, form, start: pos, end: pos + len });
   }
-  return null;
+  return out;
 }
 
-function findRoot(stem: string): Affix | null {
-  const sorted = [...ROOTS].sort((a, b) => b.text.length - a.text.length);
-  return sorted.find((root) => stem.includes(root.text) && root.text.length >= 3) ?? null;
+function tally(parts: Draft[], kind: MorphKind): number {
+  return parts.filter((p) => p.kind === kind).length;
 }
 
-export function splitMorphology(lemma: string): MorphologySplit | null {
-  const word = lemma.toLowerCase().replace(/[^a-z]/g, '');
-  if (word.length < 6) return null;
+function lastRoot(parts: Draft[]): Draft | undefined {
+  return [...parts].reverse().find((p) => p.kind === 'ROOT');
+}
 
-  const prefix = longestMatch(word, PREFIXES, 'prefix');
-  const rest = word.slice(prefix?.text.length ?? 0);
-  const suffix = longestMatch(rest, SUFFIXES, 'suffix');
-  const stem = rest.slice(0, rest.length - (suffix?.text.length ?? 0));
-  if (stem.length < 3) return null;
+function relax(states: Map<string, State>, next: State): void {
+  const key = `${next.pos}:${next.phase}`;
+  const prev = states.get(key);
+  if (!prev || next.score > prev.score + 1e-9) states.set(key, next);
+}
 
-  const root = findRoot(stem);
-  // 至少要有「词根」或「前缀 + 后缀」两类证据，避免把任意单词硬拆
-  if (!root && !(prefix && suffix)) return null;
+function shortSuffixAllowed(form: string, wordLen: number, rootLen: number): boolean {
+  const rule = SHORT_SUFFIX_RULES[form];
+  if (!rule) return form.length >= 3;
+  return wordLen >= rule.word && rootLen >= rule.root;
+}
 
-  const parts: string[] = [];
-  if (prefix) parts.push(`${prefix.text}-（${prefix.meaning}）`);
-  parts.push(root ? `${root.text}（${root.meaning}）` : stem);
-  if (suffix) parts.push(`-${suffix.text}（${suffix.meaning}）`);
+/** DP：state = (位置, 阶段)，阶段 0 前缀区 / 1 词根区 / 2 后缀区 */
+function segment(word: string): { parts: Draft[]; silentE: boolean } | null {
+  const n = word.length;
+  const states = new Map<string, State>();
+  states.set('0:0', { pos: 0, phase: 0, score: 0, parts: [], roots: 0 });
 
+  for (let pos = 0; pos < n; pos += 1) {
+    for (const phase of [0, 1, 2] as const) {
+      const node = states.get(`${pos}:${phase}`);
+      if (!node) continue;
+
+      if (phase === 0) {
+        if (tally(node.parts, 'PREFIX') < MAX_PREFIXES) {
+          for (const draft of draftsAt(word, pos, 'PREFIX')) {
+            if (draft.end >= n) continue;
+            relax(states, {
+              ...node,
+              pos: draft.end,
+              score: node.score + 2.2 * draft.form.length,
+              parts: [...node.parts, draft],
+            });
+          }
+        }
+        for (const draft of draftsAt(word, pos, 'ROOT')) {
+          relax(states, {
+            ...node,
+            pos: draft.end,
+            phase: 1,
+            score: node.score + 4.0 * draft.form.length + (draft.entry.form === draft.form ? 1 : 0),
+            parts: [...node.parts, draft],
+            roots: node.roots + 1,
+          });
+        }
+      }
+
+      const root = lastRoot(node.parts);
+      if (phase === 1 && node.roots === 1 && root && AFFIX_LEXICON.compoundRoots.has(root.entry.form)) {
+        for (const draft of draftsAt(word, pos, 'ROOT')) {
+          relax(states, {
+            ...node,
+            pos: draft.end,
+            score: node.score + 3.6 * draft.form.length,
+            parts: [...node.parts, draft],
+            roots: node.roots + 1,
+          });
+        }
+      }
+
+      if (phase >= 1 && tally(node.parts, 'SUFFIX') < MAX_SUFFIXES && root) {
+        for (const draft of draftsAt(word, pos, 'SUFFIX')) {
+          if (!shortSuffixAllowed(draft.form, n, root.form.length)) continue;
+          relax(states, {
+            ...node,
+            pos: draft.end,
+            phase: 2,
+            score: node.score + 2.4 * draft.form.length - 0.6,
+            parts: [...node.parts, draft],
+          });
+        }
+      }
+    }
+  }
+
+  const candidates: Array<{ parts: Draft[]; silentE: boolean; score: number }> = [];
+  for (const [key, state] of states) {
+    if (state.roots < 1) continue;
+    const end = key.split(':')[0];
+    if (end === String(n)) {
+      candidates.push({ parts: state.parts, silentE: false, score: state.score - excessPenalty(state.parts.length) });
+    } else if (end === String(n - 1) && word[n - 1] === 'e') {
+      candidates.push({ parts: state.parts, silentE: true, score: state.score - excessPenalty(state.parts.length) - 1.2 });
+    }
+  }
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    if (Math.abs(a.score - b.score) > 1e-9) return b.score - a.score;
+    if (a.parts.length !== b.parts.length) return a.parts.length - b.parts.length;
+    return rootLen(b.parts) - rootLen(a.parts);
+  });
+  const best = candidates[0]!;
+  return { parts: best.parts, silentE: best.silentE };
+}
+
+function excessPenalty(count: number): number {
+  return 0.3 * Math.max(0, count - 3);
+}
+
+function rootLen(parts: Draft[]): number {
+  return parts.find((p) => p.kind === 'ROOT')?.form.length ?? 0;
+}
+
+function toPart(draft: Draft): MorphPart {
   return {
-    formula: parts.join(' + '),
-    origin: root
-      ? `按常见词根词缀自动拆分：${root.text} 表示「${root.meaning}」。未收录人工词根，仅供记忆参考。`
-      : '按常见词缀自动拆分，未能确定词根，仅供记忆参考。',
-    auto: true,
+    kind: draft.kind,
+    form: draft.form,
+    key: draft.entry.form,
+    cn: draft.entry.cn,
+    gloss: cleanGloss(draft.entry.literal || draft.entry.cn),
+    origin: draft.entry.origin,
+    sourceWord: draft.entry.sourceWord,
+    start: draft.start,
+    end: draft.end,
+    variant: draft.form !== draft.entry.form,
   };
+}
+
+/**
+ * 短义清洗：去掉词表里的省略号与首尾虚词。
+ * 不做这步，`…的行为、结果` 会进记忆链变成「使标记的的」。
+ */
+export function cleanGloss(text: string): string {
+  const cleaned = text
+    .split(/[、；;，,]/)
+    .map((seg) => seg.replace(/…/g, '').replace(/^的+/, '').replace(/的+$/, '').trim())
+    .find(Boolean);
+  return cleaned ?? text.replace(/…/g, '').trim();
+}
+
+function shortCn(part: MorphPart): string {
+  return cleanGloss(part.cn);
+}
+
+/** 组合词根（bene+dict）里最后一个词根才是家族轴心 */
+function mainRoot(parts: MorphPart[]): MorphPart | undefined {
+  return [...parts].reverse().find((p) => p.kind === 'ROOT');
+}
+
+function suffixTemplate(part: MorphPart): string {
+  return AFFIX_LEXICON.suffixes.get(part.key)?.literal ?? part.cn;
+}
+
+/** 机械直译：否定前缀整体包在最外层，其余前缀按顺序贴词根，后缀从内到外逐层套模板 */
+export function composeLiteral(parts: MorphPart[]): string {
+  const root = mainRoot(parts);
+  if (!root) return '';
+  const suffixes = parts.filter((p) => p.kind === 'SUFFIX');
+  const prefixes = parts.filter((p) => p.kind === 'PREFIX');
+  const negated = prefixes.filter((p) => HARD_NEGATIONS.has(p.key));
+  const inline = prefixes.filter((p) => !HARD_NEGATIONS.has(p.key));
+
+  // 一律用短义拼接：cn 是教学义，带「…」「的」，拼出来就是叠字
+  let core = `${inline.map((p) => p.gloss).join('')}${root.gloss}`;
+  for (const suffix of suffixes) {
+    core = suffixTemplate(suffix).replace('{core}', core);
+  }
+  return `${negated.map(() => '不').join('')}${core}`;
+}
+
+function build(
+  word: string,
+  parts: MorphPart[],
+  silentE: boolean,
+  confidence: 'CURATED' | 'AUTO',
+  literal?: string,
+  authoredBy: 'HUMAN' | 'AI_DRAFTED' | 'AI_REVIEWED' | 'NONE' = 'NONE',
+  story?: string[],
+): Morphology {
+  const root = mainRoot(parts)!;
+  const computed = literal && literal.trim() ? literal.trim() : composeLiteral(parts);
+  const strong = root.form.length >= 4 && parts.length >= 2 && parts.every((p) => p.cn.length > 0);
+  const source = root.sourceWord ? `（${root.sourceWord}）` : '';
+  const curated = confidence === 'CURATED';
+  return {
+    word,
+    parts,
+    root,
+    chain: parts.map(shortCn),
+    literal: computed,
+    bridge: computed,
+    silentE,
+    confidence,
+    authoredBy: curated ? (authoredBy === 'NONE' ? 'HUMAN' : authoredBy) : 'NONE',
+    // 红线：自动拆分只进词根库，不上学习卡
+    showOnCard: curated,
+    strong,
+    note: curated
+      ? `人工校订的拆解：词根 ${root.form} 源自${root.origin}${source}。`
+      : `按词根词缀表自动切分：词根 ${root.form} 源自${root.origin}${source}，未逐词人工复核，仅供词根库检索。`,
+    ...(curated && story && story.length > 0 ? { story } : {}),
+  };
+}
+
+function fromCurated(word: string, curated: CuratedWord): Morphology | null {
+  const parts: MorphPart[] = [];
+  let cursor = 0;
+  for (const [kind, form] of curated.parts) {
+    const entry = entryFor(kind, form);
+    if (!entry) return null;
+    if (word.slice(cursor, cursor + form.length) !== form) return null;
+    const override = curated.atoms?.[form] ?? curated.atoms?.[entry.form];
+    parts.push({
+      kind,
+      form,
+      key: entry.form,
+      cn: entry.cn,
+      gloss: override ? cleanGloss(override) : cleanGloss(entry.literal || entry.cn),
+      origin: entry.origin,
+      sourceWord: entry.sourceWord,
+      start: cursor,
+      end: cursor + form.length,
+      variant: form !== entry.form,
+    });
+    cursor += form.length;
+  }
+  const silentE = cursor === word.length - 1 && word[cursor] === 'e';
+  if (cursor !== word.length && !silentE) return null;
+  if (parts.filter((p) => p.kind === 'ROOT').length === 0) return null;
+  return build(word, parts, silentE, 'CURATED', curated.literal, curated.authoredBy ?? 'HUMAN', curated.story);
+}
+
+export function analyzeMorphology(lemma: string): Morphology | null {
+  const word = lemma.trim().toLowerCase().replace(/[^a-z]/g, '');
+  if (word.length < MIN_WORD || word.length > MAX_WORD) return null;
+  if (AFFIX_LEXICON.blocked.has(word)) return null;
+
+  const curated = getCurated(word);
+  if (curated) {
+    const hit = fromCurated(word, curated);
+    if (hit) return hit;
+  }
+
+  const split = segment(word);
+  if (!split) return null;
+  return build(word, split.parts.map(toPart), split.silentE, 'AUTO');
+}
+
+/** 词根家族键：用于「织网」查同根词（变体归一到主条目） */
+export function familyKey(morph: Morphology | null): string | null {
+  return morph?.root.key ?? null;
 }

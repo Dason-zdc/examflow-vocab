@@ -7,6 +7,7 @@ import { Button, ProgressBar } from './primitives';
 import { ICON_SIZE, ICON_STROKE, Volume2 } from './icons';
 import { weightLabel } from './format';
 import { DictEntryView } from './DictEntryView';
+import { MorphologyCard } from './MorphologyCard';
 import { useDictEntry } from './useDictEntry';
 
 /** 点词即查（PRD 5.8 / S-02）：例句里点任意单词 → 词条摘要 → 加入生词本。
@@ -119,7 +120,16 @@ export function LookupModal({ open, surface, word, exam, starred, sourceSentence
       ) : dictState.status === 'loading' ? (
         <p className="py-4 text-center text-sm text-muted">正在查词典…</p>
       ) : dictState.entry ? (
-        <DictEntryView entry={dictState.entry} compact />
+        <>
+          <DictEntryView entry={dictState.entry} compact />
+          <MorphologyCard
+            lemma={dictState.entry.lemma}
+            senseCn={dictState.entry.senses[0]?.cn ?? ''}
+            open
+            compact
+            onToggle={() => {}}
+          />
+        </>
       ) : (
         <div className="flex flex-col gap-2 rounded-md bg-warm px-3 py-3">
           <p className="text-sm text-fg-2">词库与词典均未收录「{surface}」。</p>

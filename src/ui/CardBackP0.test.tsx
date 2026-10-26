@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { CardBackDictionary } from './CardBackDictionary';
 import { CardBackSentences } from './CardBackSentences';
-import { CardBackFamilies } from './CardBackFamilies';
 import type { PackWord } from '../content/packVerifier';
 import type { Sense } from '../domain/types';
 
@@ -51,41 +50,6 @@ describe('P0-3 义项区合并展示', () => {
 });
 
 describe('P0-4 例句区降噪', () => {
-  it('无词群时不渲染该模块', () => {
-    const { container } = render(<CardBackFamilies onOpenWord={() => {}} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('渲染同源词群成员与派生词，并支持一键加入生词本', () => {
-    const added: string[] = [];
-    render(
-      <CardBackFamilies
-        family={{
-          root: 'cit',
-          rootMeaning: '唤起、刺激',
-          origin: 'Latin',
-          formula: 'ex( 向外 )+cit( 唤起、刺激 )',
-          members: [{ lemma: 'excite', pos: 'v.', cn: '刺激、使兴奋', formula: 'ex( 向外 )+cit( 唤起、刺激 )', source: 'ECDICT' }],
-          source: 'ECDICT-wordroot/manual',
-        }}
-        derivatives={[
-          { lemma: 'cited', pos: 'v.', cn: '引用', kind: 'INFLECTION' },
-          { lemma: 'citation', pos: 'n.', cn: '引用、引证', kind: 'DERIVATION' },
-        ]}
-        onOpenWord={() => {}}
-        onAddWord={(lemma) => added.push(lemma)}
-      />,
-    );
-    expect(screen.getByText('cit')).toBeTruthy();
-    expect(screen.getByText('刺激、使兴奋')).toBeTruthy();
-    // 派生词只展示 DERIVATION（citation），不展示屈折变化（cited）
-    expect(screen.getByText('citation')).toBeTruthy();
-    expect(screen.queryByText('cited')).toBeNull();
-    const addBtn = screen.getByRole('button', { name: '加入生词本' });
-    fireEvent.click(addBtn);
-    expect(added).toEqual(['excite']);
-  });
-
   it('第二条起默认折叠，点击展开其余例句', () => {
     render(<CardBackSentences word={fixture(examSense('s1', '引用'))} currentSenseId="s1" accent="uk" onWord={() => {}} />);
     // 仅首句可见，出现折叠入口（例句被拆成逐词按钮，按 token 断言）

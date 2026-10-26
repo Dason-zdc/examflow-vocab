@@ -20,12 +20,12 @@
 | dexie | **4.4.6** | `bulkUpdate(keysAndChanges: [{key, changes}])` 单参形式；`between()` 默认排上界 |
 | dexie-react-hooks | ^1.1.7 | `useLiveQuery` 依赖必须稳定引用 |
 | lucide-react | 1.60.0 | 图标唯一来源（门禁 4） |
-| vite-plugin-pwa | 2.0.0 | `registerType: 'prompt'`，generateSW |
+| vite-plugin-pwa | 2.0.0 | `registerType: 'autoUpdate'`，generateSW |
 | vitest | 3.2.7 | `test.include` 必须覆盖 `.tsx`（曾因只匹配 `.ts` 导致 Provider 测试从未运行） |
 | fake-indexeddb | 6.2.6 | 存储层测试底座 |
 | @testing-library/react | ^16.3.0 | Provider 全流程测试 |
 
-Node 引擎要求：`>= 20.19.0`（package.json engines）。
+Node 引擎要求：`>= 22.5.0`（package.json engines；后端依赖内置 `node:sqlite`，纯前端构建 20.19+ 亦可）。
 
 ## 2. 分层规则与依赖方向
 
@@ -66,7 +66,11 @@ src/
 │   ├── packLoader.ts              204   loadPack（分块 + manifest + lemma-map + 版本门）
 │   ├── packCache.ts                51   IndexedDB 分块缓存（chunkKey / invalidateStaleChunks）
 │   ├── dictionary.ts               93   PackDictionary（getWord 按 id 优先、回落 lemma）
-│   └── dict.ts                    253   FullDictionary：全量词典分片懒加载 / 词形还原 / 前缀搜索 / Cache Storage
+│   ├── dict.ts                    253   FullDictionary：全量词典分片懒加载 / 词形还原 / 前缀搜索 / Cache Storage
+│   ├── affix-lexicon.json           —   人工校订词表：113 前缀 / 273 词根 / 71 后缀（唯一真相源）
+│   ├── affixLexicon.ts            148   词表类型化入口 + 变体归一 + 词表统计
+│   ├── morphology.ts              324   词素切分 DP（前缀*/词根/后缀*）+ 机械直译 + 人工/自动口径
+│   └── rootFamilies.ts            123   同根词索引懒加载（织网）+ 内存/Cache Storage
 ├── storage/
 │   ├── db.ts                      107   ExamFlowDB（6 表）/ toCardRow / fromCardRow / openDatabase
 │   └── backupService.ts           124   导出 / 解析 / 校验 / 序列化（fsrs 日期字段与 ISO 字符串互转）
@@ -87,11 +91,15 @@ src/
 └── ui/
     ├── ExamFlowApp.tsx            168   容器：Provider 最外层，Chrome 消费会话上下文；空考期走引导面板
     ├── ErrorBoundary.tsx           62   根级错误边界（getDerivedStateFromError + 重试 + 技术细节折叠）
-    ├── AppHeader.tsx              129   品牌 + 考试切换 + 搜索 + 倒计时（null=未设置考期）+ 设置入口 + 本轮进度条
+    ├── AppHeader.tsx              203   品牌 + 考试切换 + 搜索 + 倒计时 + 桌面导航 + 移动端页面菜单 + 本轮进度条
     ├── StudyView.tsx              265   学习页编排（CardFront / CardBack / 底部操作区 / 折叠块状态持有）
     ├── CardFront.tsx              166   词头 + 音标 + 估计权重徽章 + 挖空例句 + 3 档预判
-    ├── CardBack.tsx               235   评分条 + 重排横幅 + 义项权重 + 例句高亮 + 笔记
-    ├── CardBackBlocks.tsx         208   背面可折叠区块：词根（R）/ 形近词 + 同义（F），受控渲染 + 点击上抛
+    ├── CardBack.tsx               199   评分条 + 重排横幅 + 义项权重 + 例句高亮 + 笔记
+    ├── MorphologyCard.tsx         ~200  词根记忆链：con(一起)+sist(站)→站到一起→由…组成（R 折叠；只上人工背书链）
+    ├── RootWeb.tsx                107   第 4 步同根词网：点词跳转 + 加入生词本 + 词形派生
+    ├── useRootFamily.ts            24   按词根异步取织网数据
+    ├── RootsView.tsx              193   词根库：242 个词根家族 / 搜索 / 同根词加入生词本
+    ├── CardBackBlocks.tsx         164   背面可折叠区块：形近词 + 同义（F）/ 考点与笔记
     ├── SynonymGroups.tsx           49   义项级同义分组渲染（五态徽章 / 改写模板 / 不可用理由；库外候选也可点）
     ├── DictView.tsx               186   词典页：前缀搜索 + A–Z 分片浏览 + 详情 + 加入生词本
     ├── DictEntryView.tsx           29   词典条目展示（音标 / 词性释义 / 词频标签 / 来源声明）
@@ -111,7 +119,7 @@ src/
     └── useExamFlow.ts             220   数据编排 hook（openDatabase→ensureSettings→loadPack→…）
 ```
 
-测试文件 40 个 / 254 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
+测试文件 45 个 / 296 用例，与源文件同目录（`*.test.ts(x)`），清单见 `docs/04-TEST-PLAN.md`。
 
 ## 4. 数据契约
 
@@ -264,7 +272,7 @@ useUserWordMeta(db, wordId) / useCoverage(db, exam, dictionary, scheduler, now, 
 
 | 项 | 值 |
 | :-- | :-- |
-| 注册策略 | `registerType: 'prompt'`，`main.tsx` 中 `registerSW({ immediate: true })` |
+| 注册策略 | `registerType: 'autoUpdate'`（新版本就绪即接管刷新），`main.tsx` 中 `registerSW({ immediate: true })` |
 | 预缓存 | 20 条目（js/css/html/svg/png/**woff2**/webmanifest），`navigateFallback: 'index.html'` |
 | manifest | `theme_color #0E7490`（accent）/ `background_color #F5F7FA`（画布）/ standalone / zh-CN |
 | 图标 | any 192/512 + maskable 192/512（字形收进 60% 安全区）+ apple-touch-icon 180 |

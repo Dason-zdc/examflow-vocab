@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { ExamCode, Settings } from '../domain/types';
 import type { ViewKey } from './useExamFlow';
 import { IconButton } from './primitives';
-import { BookOpen, ICON_SIZE, ICON_STROKE, Languages, LayoutDashboard, Search, Settings as SettingsIcon } from './icons';
+import { BookOpen, ICON_SIZE, ICON_STROKE, Languages, LayoutDashboard, Menu, Network, Search, Settings as SettingsIcon, Sprout } from './icons';
 import { daysToExamLabel } from './format';
 
 /** 全局外壳（UIUX §7.0）：Header + 本轮进度条 + 主导航 */
@@ -30,7 +31,7 @@ const EXAM_LABEL: Record<ExamCode, string> = {
   TOEFL: '托福',
 };
 
-const VIEW_LABEL: Record<ViewKey, string> = { study: '学习', vocab: '词库', dict: '词典' };
+const VIEW_LABEL: Record<ViewKey, string> = { study: '学习', vocab: '词库', dict: '词典', roots: '词根' };
 
 export function AppHeader({
   settings,
@@ -45,6 +46,17 @@ export function AppHeader({
   onOpenSettings,
   onOpenDashboard,
 }: AppHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   return (
     <>
       <header className="sticky top-0 z-header border-b border-line bg-surface backdrop-blur" style={{ height: 56 }}>
@@ -71,6 +83,17 @@ export function AppHeader({
               ))}
             </select>
           </label>
+
+          <IconButton
+            label="切换页面"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+            aria-controls="mobile-view-menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="md:hidden"
+          >
+            <Menu size={ICON_SIZE.standalone} strokeWidth={ICON_STROKE} aria-hidden />
+          </IconButton>
 
           <form
             className="relative hidden flex-1 sm:block"
@@ -104,6 +127,7 @@ export function AppHeader({
               >
                 {v === 'vocab' ? <BookOpen size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
                 {v === 'dict' ? <Languages size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'roots' ? <Network size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
                 {VIEW_LABEL[v]}
               </button>
             ))}
@@ -126,6 +150,44 @@ export function AppHeader({
           </IconButton>
         </div>
       </header>
+
+      {menuOpen ? (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-scrim md:hidden"
+          />
+          <nav
+            id="mobile-view-menu"
+            aria-label="页面切换"
+            className="fixed right-3 top-14 z-modal w-44 overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-overlay md:hidden"
+          >
+            {(Object.keys(VIEW_LABEL) as ViewKey[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                autoFocus={view === v}
+                aria-current={view === v ? 'page' : undefined}
+                onClick={() => {
+                  onView(v);
+                  setMenuOpen(false);
+                }}
+                className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  view === v ? 'bg-accent-soft text-accent-soft-fg' : 'text-fg-2 hover:bg-warm'
+                }`}
+              >
+                {v === 'study' ? <Sprout size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'vocab' ? <BookOpen size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'dict' ? <Languages size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {v === 'roots' ? <Network size={ICON_SIZE.inline} strokeWidth={ICON_STROKE} aria-hidden /> : null}
+                {VIEW_LABEL[v]}
+              </button>
+            ))}
+          </nav>
+        </>
+      ) : null}
+
 
       {/* 本轮进度条（UIUX §5.3：学习页强调色第 2 处） */}
       <div className="sticky top-14 z-header h-1 w-full bg-line" role="presentation">

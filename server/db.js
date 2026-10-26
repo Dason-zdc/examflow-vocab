@@ -124,6 +124,20 @@ db.exec(`
     id INTEGER PRIMARY KEY CHECK (id = 1),
     value INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS morph_ai_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    word TEXT NOT NULL,
+    model TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_code TEXT,
+    error_message TEXT,
+    latency_ms INTEGER NOT NULL,
+    prompt TEXT NOT NULL,
+    raw_response TEXT,
+    entry TEXT
+  );
 `);
 
 db.exec('INSERT OR IGNORE INTO sync_seq_counter(id, value) VALUES (1, 0);');

@@ -9,6 +9,7 @@ import { AppHeader } from './AppHeader';
 import { StudyView } from './StudyView';
 import { VocabBookView } from './VocabBookView';
 import { DictView } from './DictView';
+import { RootsView } from './RootsView';
 import { SettingsModal } from './SettingsModal';
 import { DashboardContainer } from './DashboardContainer';
 import { useExamFlow } from './useExamFlow';
@@ -163,15 +164,22 @@ function Chrome({ flow, db, settings, dictionary, searchQuery, onSearch, prevRev
             onOpenSettings={() => flow.setSettingsOpen(true)}
             onExport={flow.exportBackupFile}
             onImport={flow.importBackupFile}
+            onOpenRoots={() => flow.setView('roots')}
           />
         ) : flow.view === 'vocab' ? (
           <VocabBookView db={db} exam={settings.exam} dictionary={dictionary} onReset={flow.resetProgress} initialQuery={searchQuery} />
-        ) : (
+        ) : flow.view === 'dict' ? (
           <DictView
             db={db}
             exam={settings.exam}
             inPack={(lemma) => Boolean(dictionary.getWord(lemma))}
             initialQuery={searchQuery}
+          />
+        ) : (
+          <RootsView
+            db={db}
+            exam={settings.exam}
+            inPack={(lemma) => Boolean(dictionary.getWord(lemma))}
           />
         )}
       </main>

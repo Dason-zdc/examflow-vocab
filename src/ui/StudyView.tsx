@@ -9,7 +9,7 @@ import { useStudySession } from '../app/StudySessionProvider';
 import { setNote, setStarred } from '../app/userWordsUseCase';
 import { addCustomWord } from '../app/customWordsUseCase';
 import { recordSpellingAttempt } from '../app/spellingUseCase';
-import { useUserWordMeta } from '../app/queries';
+import { useCardsForExam, useUserWordMeta } from '../app/queries';
 import { CardFront } from './CardFront';
 import { CardBack } from './CardBack';
 import { WordPreviewModal } from './WordPreviewModal';
@@ -37,6 +37,8 @@ export interface StudyViewProps {
   onOpenSettings: () => void;
   onExport: () => Promise<void>;
   onImport: (file: File) => Promise<void>;
+  /** 跳到词根库（未接入时卡片不显示入口） */
+  onOpenRoots?: () => void;
 }
 
 const RATING_BY_KEY: Record<'1' | '2' | '3', RatingCode> = { '1': 'AGAIN', '2': 'HARD', '3': 'GOOD' };
@@ -54,10 +56,23 @@ export function StudyView({
   onOpenSettings,
   onExport,
   onImport,
+  onOpenRoots,
 }: StudyViewProps) {
   const session = useStudySession();
   const metas = useUserWordMeta(db);
+  const allCards = useCardsForExam(db, settings.exam);
   const { state } = session;
+
+  // 同根词只挑「已经学过」的：reps > 0 即视为学过（FSRS 状态的最简口径）
+  const knownLemmas = useMemo(() => {
+    const known = new Set<string>();
+    for (const c of allCards ?? []) {
+      if (c.fsrs.reps === 0) continue;
+      const word = dictionary.getWord(c.wordId);
+      if (word) known.add(word.lemma.toLowerCase());
+    }
+    return known;
+  }, [allCards, dictionary]);
 
   const currentId = state.currentId;
   const view = currentId ? state.views.get(currentId) : undefined;
@@ -77,13 +92,14 @@ export function StudyView({
 
   // 背面次要区块折叠态（快捷键 R/F 驱动）；换卡即重置，不残留上一张的展开态
   const [etymologyOpen, setEtymologyOpen] = useState(false);
-  const [confusablesOpen, setConfusablesOpen] = useState(false);
+  // 易混词是防错主内容，默认展开；按 F 可收起
+  const [confusablesOpen, setConfusablesOpen] = useState(true);
   const [spellOpen, setSpellOpen] = useState(false);
   const [preview, setPreview] = useState<{ lemma: string; word: PackWord | null } | null>(null);
   const [lookup, setLookup] = useState<{ surface: string; word: PackWord | null; sentence?: string } | null>(null);
   useEffect(() => {
     setEtymologyOpen(false);
-    setConfusablesOpen(false);
+    setConfusablesOpen(true);
     setSpellOpen(false);
     setPreview(null);
     setLookup(null);
@@ -223,14 +239,8 @@ export function StudyView({
               onToggleConfusables={() => setConfusablesOpen((v) => !v)}
               onOpenWord={(lemma) => setPreview({ lemma, word: dictionary.lookup(lemma) ?? null })}
               onLookupWord={(surface) => setLookup({ surface, word: dictionary.lookup(surface) ?? null, sentence: view.sentences[0]?.en })}
-              onAddWord={async (lemma, cn) => {
-                const hit = dictionary.lookup(lemma);
-                if (hit) {
-                  await setStarred(db, hit.id, true);
-                  return;
-                }
-                await addCustomWord(db, { lemma, phonetic: '', cn }, settings.exam);
-              }}
+              knownLemmas={knownLemmas}
+              {...(onOpenRoots ? { onOpenRoots } : {})}
               starred={starred}
               onToggleStar={() => void setStarred(db, view.word.id, !starred)}
               onPlay={(accent) => speak(view.word.lemma, accent)}

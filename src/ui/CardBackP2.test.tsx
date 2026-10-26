@@ -57,22 +57,13 @@ describe('P2-1 顶部信息条', () => {
 });
 
 describe('P2-2 笔记体系', () => {
-  it('官方笔记（自动生成）与我的笔记分开呈现', () => {
-    render(
-      <ExamTipBlock
-        tip={null}
-        note="我的助记：别和 site 混"
-        official={['词族：cit（唤起、刺激）—— excite / excitement / incite', '拼写在第 1 个字母处开始不同（cite / bite）。']}
-        onSave={() => {}}
-      />,
-    );
-    expect(screen.getByText(/由形近辨析与词族自动生成/)).toBeTruthy();
-    expect(screen.getByText(/词族：cit/)).toBeTruthy();
+  it('我的笔记独立呈现，不与助记混在一起', () => {
+    render(<ExamTipBlock tip={null} note="我的助记：别和 site 混" onSave={() => {}} />);
     expect(screen.getByText(/我的助记：别和 site 混/)).toBeTruthy();
   });
 
-  it('无官方笔记时不渲染该区块', () => {
-    render(<ExamTipBlock tip={null} note="" official={[]} onSave={() => {}} />);
-    expect(screen.queryByText(/由形近辨析与词族自动生成/)).toBeNull();
+  it('没有笔记时不渲染笔记块', () => {
+    render(<ExamTipBlock tip={null} note="" onSave={() => {}} />);
+    expect(screen.queryByText(/我的笔记/)).toBeNull();
   });
 });

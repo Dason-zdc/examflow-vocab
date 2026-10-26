@@ -3,13 +3,12 @@ import type { Card, RatingCode } from '../domain/types';
 import type { PendingReview } from '../domain/reviewCommitter';
 import type { RequeueResult } from '../domain/sessionQueue';
 import type { SessionCardView } from '../app/sessionBuilder';
-import { splitMorphology } from '../content/morphology';
 import { buildExamTip } from '../app/examTip';
 import { Button, Kbd } from './primitives';
 import { CardBackDictionary } from './CardBackDictionary';
 import { CardBackSentences } from './CardBackSentences';
-import { EtymologyBlock, ExamTipBlock, NetworkBlock } from './CardBackBlocks';
-import { CardBackFamilies } from './CardBackFamilies';
+import { ConfusableBlock, ExamTipBlock, IeltsRewriteBlock } from './CardBackBlocks';
+import { MorphologyCard } from './MorphologyCard';
 import { WordHeaderBar } from './WordHeaderBar';
 import { ICON_SIZE, ICON_STROKE, ArrowRight } from './icons';
 import { BACK_RATING_LABEL } from './format';
@@ -29,8 +28,10 @@ export interface CardBackProps {
   onToggleConfusables: () => void;
   onOpenWord: (lemma: string) => void;
   onLookupWord: (surface: string) => void;
-  /** P1-5：同源词群成员一键加入生词本（未接入时按钮不渲染） */
-  onAddWord?: (lemma: string, cn: string) => void;
+  /** 跳到词根库页（未接入时卡片不显示入口） */
+  onOpenRoots?: () => void;
+  /** 已学过的词（FSRS reps > 0），用于挑 2–3 个同根词 */
+  knownLemmas?: ReadonlySet<string>;
   onOpenSpell: () => void;
   onToggleStar: () => void;
   onPlay: (accent: 'uk' | 'us') => void;
@@ -69,7 +70,8 @@ export function CardBack({
   onToggleConfusables,
   onOpenWord,
   onLookupWord,
-  onAddWord,
+  onOpenRoots,
+  knownLemmas,
   onOpenSpell,
   onToggleStar,
   onPlay,
@@ -80,15 +82,7 @@ export function CardBack({
   const { word, sense } = view;
   const [tab, setTab] = useState<TabKey>('study');
   const rating = pending?.rating ?? null;
-  const autoSplit = word.etymology ? null : splitMorphology(word.lemma);
   const tip = buildExamTip(word, sense, card.exam);
-  // P2-2 官方笔记：形近辨析 + 词族提示自动生成（不做社区型精选笔记）
-  const officialNotes = [
-    ...(word.wordFamily
-      ? [`词族：${word.wordFamily.root}（${word.wordFamily.rootMeaning}）—— ${word.wordFamily.members.slice(0, 3).map((m) => m.lemma).join(' / ')}`]
-      : []),
-    ...word.confusables.slice(0, 2).map((c) => c.tip),
-  ];
 
   return (
     <article role="region" aria-label="学习卡片答案">
@@ -135,24 +129,29 @@ export function CardBack({
         {tab === 'study' ? (
           <>
             <CardBackSentences word={word} currentSenseId={sense.id} accent={accent} onWord={onLookupWord} />
-            <EtymologyBlock
-              etymology={word.etymology}
-              auto={autoSplit}
+            <MorphologyCard
+              lemma={word.lemma}
+              senseCn={sense.cn}
               forms={word.forms}
+              {...(knownLemmas ? { knownLemmas } : {})}
               open={etymologyOpen}
               onToggle={onToggleEtymology}
-            />
-            <CardBackFamilies
-              family={word.wordFamily}
-              derivatives={word.derivatives}
               onOpenWord={onOpenWord}
-              {...(onAddWord ? { onAddWord } : {})}
+              {...(onOpenRoots ? { onOpenRoots } : {})}
             />
-            <NetworkBlock
+            <ConfusableBlock
+              lemma={word.lemma}
+              lapses={card.fsrs.lapses}
               confusables={word.confusables}
-              synonyms={sense.synonymGroups ?? []}
               open={confusablesOpen}
               onToggle={onToggleConfusables}
+              onOpenWord={onOpenWord}
+            />
+            <IeltsRewriteBlock
+              lemma={word.lemma}
+              senseCn={sense.cn}
+              {...(sense.enDef ? { enDef: sense.enDef } : {})}
+              groups={sense.synonymGroups ?? []}
               onOpenWord={onOpenWord}
             />
           </>
@@ -160,7 +159,7 @@ export function CardBack({
 
         {tab === 'dict' ? <CardBackDictionary word={word} sense={sense} exam={card.exam} /> : null}
 
-        {tab === 'note' ? <ExamTipBlock tip={tip} note={note} official={officialNotes} onSave={onSaveNote} /> : null}
+        {tab === 'note' ? <ExamTipBlock tip={tip} note={note} onSave={onSaveNote} /> : null}
 
         <div className="hidden md:flex md:flex-col md:gap-2">
           <Button variant="primary" block disabled={!rating} onClick={onCommitNext} aria-describedby={rating ? undefined : 'next-hint'}>

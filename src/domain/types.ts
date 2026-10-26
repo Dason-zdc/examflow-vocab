@@ -91,6 +91,8 @@ export interface Confusable {
   tip: string;
   /** 形近词音标（数据包携带，UI 展示用） */
   phonetic?: string;
+  /** 形近词中文释义（数据包携带；无人工高危对时降级展示用） */
+  cn?: string;
 }
 
 /** P1 · 同源词群中的一个成员（同根词 + 记忆公式） */

@@ -20,7 +20,7 @@ import { createScheduler } from '../domain/scheduler';
 /** scheduler 单例（覆盖率查询用；retrievability 无参数依赖） */
 const SCHEDULER = createScheduler();
 
-export type ViewKey = 'study' | 'vocab' | 'dict';
+export type ViewKey = 'study' | 'vocab' | 'dict' | 'roots';
 
 export interface ExamFlowController {
   ready: boolean;
