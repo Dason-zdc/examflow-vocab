@@ -57,7 +57,6 @@ function word(lemma: string): PackWord {
       },
     ],
     confusables: [],
-    synonyms: [],
   };
 }
 

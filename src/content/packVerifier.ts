@@ -1,4 +1,5 @@
 import type { ExamCode, ExampleSentence, SenseExamStat, Word } from '../domain/types';
+import { bytesToHex, sha256Bytes } from './sha256';
 
 /**
  * 数据包校验（PRD §4 / §9）：
@@ -15,13 +16,11 @@ export class PackFormatError extends Error {
   }
 }
 
-/** sha256 hex；Node(>=20 webcrypto) 与浏览器（安全上下文）通用 */
+/** sha256 hex；优先 WebCrypto（安全上下文），非 HTTPS 部署（crypto.subtle 缺失）降级纯 JS 实现 */
 export async function sha256Hex(input: ArrayBuffer | Uint8Array): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new PackFormatError('当前环境缺少 crypto.subtle，无法校验数据包完整性');
-  }
   const src = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return bytesToHex(sha256Bytes(src));
   // 拷贝进独立 ArrayBuffer：规避 TS 5.9 下 Uint8Array<ArrayBufferLike> 与 BufferSource 的类型不匹配
   const view = new Uint8Array(src.length);
   view.set(src);
