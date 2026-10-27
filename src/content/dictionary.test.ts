@@ -46,6 +46,12 @@ describe('dictionary · 词形还原', () => {
     expect(dict.restoreLemma('PRESENT')).toBe('present');
   });
 
+  it('所有格撇号剥离后再还原：book\'s → book、books’ → book', () => {
+    expect(dict.restoreLemma("book's")).toBe('book');
+    expect(dict.restoreLemma('books’')).toBe('book');
+    expect(dict.restoreLemma("Present's")).toBe('present');
+  });
+
   it('未收录的变形如实返回 null（不做激进猜测）', () => {
     expect(dict.restoreLemma('xylophonizing')).toBeNull();
     expect(dict.restoreLemma('')).toBeNull();

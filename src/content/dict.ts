@@ -83,7 +83,9 @@ async function defaultFetchText(url: string): Promise<string> {
 }
 
 function normalize(surface: string): string {
-  return surface.trim().toLowerCase();
+  // 所有格撇号不是词形的一部分：council's → council、students' → students。
+  // 例句分词会把 's 带在词上，而词典不收带撇号的词条，不剥掉会整链查不到。
+  return surface.trim().toLowerCase().replace(/['’]s$/, '').replace(/['’]$/, '');
 }
 
 export function shardOf(word: string): string {

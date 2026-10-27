@@ -47,6 +47,11 @@ describe('FullDictionary · 全量查词', () => {
     expect(entry!.inflected).toBe(true);
   });
 
+  it('所有格撇号先剥再查：council\'s → council', async () => {
+    const entry = await makeDict().lookup("council's");
+    expect(entry!.lemma).toBe('council');
+  });
+
   it('查不到就如实返回 null，不猜词', async () => {
     const dict = makeDict();
     expect(await dict.lookup('swosh')).toBeNull();

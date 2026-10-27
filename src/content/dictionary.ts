@@ -26,7 +26,8 @@ export class PackDictionary {
 
   /** 词形还原；无法还原返回 null */
   restoreLemma(surface: string): string | null {
-    const key = surface.trim();
+    // 所有格撇号不是词形：council's → council、students' → students（例句分词会把 's 带在词上）
+    const key = surface.trim().replace(/['’]s$/i, '').replace(/['’]$/, '');
     if (key.length === 0) return null;
     if (this.lemmaMap[key]) return this.lemmaMap[key];
     const lower = key.toLowerCase();
