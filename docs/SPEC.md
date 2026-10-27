@@ -67,7 +67,7 @@ src/
 │   ├── packCache.ts                51   IndexedDB 分块缓存（chunkKey / invalidateStaleChunks）
 │   ├── dictionary.ts               93   PackDictionary（getWord 按 id 优先、回落 lemma）
 │   ├── dict.ts                    253   FullDictionary：全量词典分片懒加载 / 词形还原 / 前缀搜索 / Cache Storage
-│   ├── affix-lexicon.json           —   人工校订词表：113 前缀 / 273 词根 / 71 后缀（唯一真相源）
+│   ├── affix-lexicon.json           —   人工校订词表：114 前缀 / 313 词根 / 87 后缀（唯一真相源）
 │   ├── affixLexicon.ts            148   词表类型化入口 + 变体归一 + 词表统计
 │   ├── morphology.ts              324   词素切分 DP（前缀*/词根/后缀*）+ 机械直译 + 人工/自动口径
 │   └── rootFamilies.ts            123   同根词索引懒加载（织网）+ 内存/Cache Storage

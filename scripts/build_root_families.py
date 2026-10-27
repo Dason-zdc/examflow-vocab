@@ -38,7 +38,7 @@ MIN_WORD = 6
 MAX_WORD = 24
 HARD_NEGATIONS = {"un", "non", "il", "ir"}
 SHORT_SUFFIX_RULES = {
-    "al": (6, 3), "ic": (6, 3), "fy": (6, 3), "or": (6, 3), "y": (7, 4),
+    "al": (6, 3), "ic": (6, 3), "fy": (6, 3), "or": (6, 3), "ue": (7, 3), "y": (7, 4),
 }
 COMPOUND_ROOTS = {"bene", "male"}
 

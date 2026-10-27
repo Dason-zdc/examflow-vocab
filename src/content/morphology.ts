@@ -84,6 +84,7 @@ const SHORT_SUFFIX_RULES: Record<string, { word: number; root: number }> = {
   ic: { word: 6, root: 3 },
   fy: { word: 6, root: 3 },
   or: { word: 6, root: 3 },
+  ue: { word: 7, root: 3 },
   y: { word: 7, root: 4 },
 };
 

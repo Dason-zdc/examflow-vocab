@@ -214,4 +214,4 @@ test('AI 核对日志接口返回数组（含 503/422 的失败记录）', async
   assert.ok(codes.includes('ai_not_configured'));
   assert.ok(codes.includes('morph_blocked'));
 });
->>>>>>> a0ef6aa (feat(morph): 词根词缀拆解全量落地（ADR-009）+ AI 核对渠道与日志页)
+

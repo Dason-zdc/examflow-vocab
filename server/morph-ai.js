@@ -311,6 +311,19 @@ function resolvable(parts, idx) {
   return bad;
 }
 
+/** 词表里能用于该词的成分（原样出现在单词中的前缀/词根/后缀），注入提示词让模型只从这里选 */
+function candidateComponents(word, idx) {
+  const found = { prefix: [], root: [], suffix: [] };
+  const push = (kind, f) => {
+    if (f.length >= 2 && f.length < word.length && word.includes(f) && found[kind].length < 24) found[kind].push(f);
+  };
+  for (const f of idx.prefixes) push('prefix', f);
+  for (const f of idx.roots) push('root', f);
+  for (const f of idx.rootAliases.keys()) push('root', f);
+  for (const f of idx.suffixes) push('suffix', f);
+  return found;
+}
+
 function extractJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = fenced ? fenced[1] : text;
@@ -331,14 +344,19 @@ function validate(word, ai, current) {
   for (const p of ai.parts) {
     const [kind, form] = Array.isArray(p) ? p : [p?.kind, p?.form];
     const k = String(kind ?? '').toLowerCase();
-    const f = String(form ?? '').toLowerCase();
+    // 词缀常被模型按惯例写成 ad- / -ion（带连字符）。成分必须首尾相接拼出纯字母整词，
+    // 连字符只可能是书写符号：剥掉首尾连字符后再校验；内部连字符仍会被正则拒绝。
+    const f = String(form ?? '').toLowerCase().replace(/^-+|-+$/g, '');
     if (!KINDS.has(k) || !/^[a-z]{1,15}$/.test(f)) {
       throw new ApiError(422, 'morph_bad_part', `成分不合法：${kind}/${form}`);
     }
     parts.push([k, f]);
   }
   const covered = parts.map(([, f]) => f).join('');
-  if (covered !== word) {
+  // 与运行时契约（morphology.ts fromCurated）对齐：词尾不发音的 e 可以留在整词里不拆，
+  // 如 advice = ad + vic、cause = caus——否则正确拆分也会被 morph_not_covered 拒掉。
+  const silentE = word.endsWith('e') && covered === word.slice(0, -1);
+  if (covered !== word && !silentE) {
     throw new ApiError(422, 'morph_not_covered', `成分拼接「${covered}」未覆盖整词「${word}」`);
   }
   const idx = indexLexicon(loadLexicon());
@@ -435,19 +453,28 @@ export async function morphAskHandler(body) {
   const currentText = current
     ? JSON.stringify({ parts: current.parts, literal: current.literal, story: current.story ?? [] })
     : '（库内暂无该词）';
+  const candidates = candidateComponents(word, indexLexicon(lex));
 
   const system = [
     '你是英语词源学与构词法审核助手。你的唯一输出是一个 JSON 对象，不要任何多余文字。',
     '拆解必须遵守以下规范（来自项目文档）：',
     loadSpec(),
     '输出格式：{"word":"小写单词","parts":[["prefix|root|suffix","字母片段"],...],"literal":"成分直译连成的一句中文","story":["演变第一步","第二步","...至少两步"]}',
-    '硬性规则：parts 首尾相接必须恰好拼出整词；每个成分字母片段必须原样出现在单词中；',
+    '硬性规则：parts 首尾相接必须恰好拼出整词（词尾不发音的 e 可以留在整词里不拆）；每个成分字母片段必须原样出现在单词中；',
+    '成分只写纯字母，不要带连字符（写 ad 不是 ad-，写 ion 不是 -ion）；',
+    '前缀同化按单词里的实际拼写写：ad 在 c/f/g/p/s/t 前写成 ac/af/ag/ap/as/at，',
+    '如 assess = as + sess（不是 ad + sess）、accept = ac + cept；',
+    '优先只用用户消息里给出的「词表可用成分」组合拆分——使用词表外的成分会被拒绝；',
     'literal 不叠「的」；story 从词根本义推演到当前词义，不编造不存在的词源。',
   ].join('\n');
   const user = [
     `请核对单词「${word}」的词根词缀拆解。`,
     '库内当前数据（若为空请给出新拆解；若有误请修正）：',
     currentText,
+    '词表可用成分（能原样出现在该词中的，优先从这里选）：',
+    `前缀：${candidates.prefix.join('、') || '（无）'}`,
+    `词根：${candidates.root.join('、') || '（无）'}`,
+    `后缀：${candidates.suffix.join('、') || '（无）'}`,
     '只输出 JSON。',
   ].join('\n');
 
